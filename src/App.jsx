@@ -20,7 +20,7 @@ import Footer from "./Components/Footer";
 import EventModal from "./Components/EventModal";
 import LeasingModal from "./Components/LeasingModal";
 import SponsorshipModal from "./Components/SponsorshipModal";
-const VideoDemo = "https://drive.google.com/file/d/12ldGaVKfq7aUyyfkrmLraLSQec5VRVS6/view?usp=drive_link"
+const VideoDemo = "https://res.cloudinary.com/dbkwncgz5/video/upload/v1776394613/13748223_3840_2160_30fps_fbzbr6.mp4"
 const VIDEO_SRC = VideoDemo;
 
 const NAV_ITEMS = [

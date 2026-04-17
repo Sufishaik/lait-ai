@@ -8,7 +8,7 @@ import {
 
 
 const Entertainment = ({ setShowEventsModal }) => {
-    const EntertainVideo = "https://drive.google.com/file/d/1kbsS6HtM5lmBTu6QiAl4sCjRI-4U2oiD/view?usp=sharing"
+    const EntertainVideo = "https://res.cloudinary.com/dbkwncgz5/video/upload/v1776394272/istockphoto-849418708-640_adpp_is_for5k3.mp4"
     return (
         <div>
             <section id="entertainment" className="relative py-36 md:py-52 px-6 md:px-12 bg-black text-white overflow-hidden">
