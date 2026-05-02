@@ -1,1368 +1,578 @@
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "motion/react";
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
-  ChevronLeft, ChevronRight, X, Calendar, Users, MapPin,
-  ArrowRight, Sparkles, Utensils, Star, Zap, Building2, Menu,
-  ChevronDown, Phone, Mail, Globe, Award, TrendingUp, Heart,
-  ShoppingBag, Coffee, Music, Camera, Car, Wifi, Shield, Clock,
-  DollarSign, BarChart2, Target, Layers, Play, Volume2
+  ChevronRight, ChevronLeft, X, Send, ArrowRight, Sparkles, Star,
+  ShoppingBag, Coffee, Music, Phone, Mail, Globe, BarChart2,
+  MapPin, Users, Calendar, DollarSign, Zap, Building2,
+  Layers, Heart, Award, Shield, Play,
+  ChevronDown, TrendingUp, Menu
 } from "lucide-react";
 
+/* ── Fonts ── */
+(() => {
+  const l = document.createElement("link");
+  l.rel = "stylesheet";
+  l.href = "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Tenor+Sans&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&family=DM+Mono:wght@400;500&display=swap";
+  document.head.appendChild(l);
+})();
 
-const _fl = document.createElement("link");
-_fl.rel = "stylesheet";
-_fl.href = "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap";
-document.head.appendChild(_fl);
+const css = document.createElement("style");
+css.textContent = `
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#D4A843;--gold2:#C47B1A;--gold-dim:#8A6820;
+  --offwhite:#F2EDE4;--dark:#050403;--mid:#0d0b08;--card:#111009;
+  --serif:'Tenor Sans',serif;--display:'Bebas Neue',sans-serif;
+  --body:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+html,body{overflow:hidden;background:#050403;}
+@media(min-width:1024px){html,body{cursor:none}}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--gold)}
+input,textarea,select{font-family:var(--body);background:none;color:#fff}
+input::placeholder,textarea::placeholder{color:rgba(255,255,255,0.28)}
+option{background:#111009}
+@keyframes shimmer{0%{background-position:-400% center}100%{background-position:400% center}}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes pulse{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}}
+@keyframes breathe{0%,100%{transform:scale(1) translate(0,0)}33%{transform:scale(1.04) translate(-8px,6px)}66%{transform:scale(.98) translate(6px,-4px)}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scanline{0%{top:-4px}100%{top:100%}}
+.shimmer-gold{
+  background:linear-gradient(90deg,#D4A843 0%,#fffae0 35%,#C47B1A 55%,#D4A843 100%);
+  background-size:300% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  animation:shimmer 4s linear infinite;
+}
+.ticker-wrap{overflow:hidden;white-space:nowrap}
+.ticker{display:inline-block;animation:ticker 30s linear infinite}
+input[type=range]{-webkit-appearance:none;height:3px;background:rgba(255,255,255,.1);border-radius:2px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--gold);cursor:pointer;box-shadow:0 0 8px rgba(212,168,67,.5)}
 
+/* ── Responsive base ── */
+.slide-two-col{display:grid;grid-template-columns:1fr 1fr;height:100%}
+.slide-two-col-left{display:grid;grid-template-columns:340px 1fr;height:100%}
+@media(max-width:768px){
+  .slide-two-col{grid-template-columns:1fr!important;grid-template-rows:auto 1fr;overflow-y:auto}
+  .slide-two-col-left{grid-template-columns:1fr!important;grid-template-rows:auto 1fr;overflow-y:auto}
+  html,body{overflow:auto}
+}
+`;
+document.head.appendChild(css);
 
+const GOLD = "#D4A843", GOLD2 = "#C47B1A", DARK = "#050403";
+const HERO_VID = "https://res.cloudinary.com/dbkwncgz5/video/upload/v1776394613/13748223_3840_2160_30fps_fbzbr6.mp4";
+const ENT_VID = "https://res.cloudinary.com/dbkwncgz5/video/upload/v1776394272/istockphoto-849418708-640_adpp_is_for5k3.mp4";
 
-const HERO_VIDEO = "https://res.cloudinary.com/dbkwncgz5/video/upload/v1776394613/13748223_3840_2160_30fps_fbzbr6.mp4";
-const ENTERTAIN_VIDEO = "https://res.cloudinary.com/dbkwncgz5/video/upload/v1776394272/istockphoto-849418708-640_adpp_is_for5k3.mp4";
-
-
-const SECTIONS = [
-  {
-    id: "home", label: "Home", icon: <Star size={13} />,
-    slides: [
-      { id: "hero", type: "hero" },
-      { id: "intro-video", type: "intro-video" },
-    ]
-  },
-  {
-    id: "why-moa", label: "Why MOA", icon: <TrendingUp size={13} />,
-    slides: [
-      { id: "why-stats", type: "why-stats" },
-      { id: "why-location", type: "why-location" },
-      { id: "why-audience", type: "why-audience" },
-      { id: "why-media", type: "why-media" },
-    ]
-  },
-  {
-    id: "retail", label: "Retail", icon: <ShoppingBag size={13} />,
-    slides: [
-      { id: "retail-hero", type: "retail-hero" },
-      { id: "retail-brands", type: "retail-brands" },
-      { id: "retail-categories", type: "retail-categories" },
-      { id: "retail-leasing", type: "retail-leasing" },
-      { id: "retail-popup", type: "retail-popup" },
-    ]
-  },
-  {
-    id: "luxury", label: "Luxury", icon: <Award size={13} />,
-    slides: [
-      { id: "luxury-hero", type: "luxury-hero" },
-      { id: "luxury-metrics", type: "luxury-metrics" },
-      { id: "luxury-brands", type: "luxury-brands" },
-    ]
-  },
-  {
-    id: "dining", label: "Dining", icon: <Coffee size={13} />,
-    slides: [
-      { id: "dining-hero", type: "dining-hero" },
-      { id: "dining-concepts", type: "dining-concepts" },
-      { id: "dining-stats", type: "dining-stats" },
-    ]
-  },
-  {
-    id: "entertainment", label: "Entertainment", icon: <Music size={13} />,
-    slides: [
-      { id: "ent-hero", type: "ent-hero" },
-      { id: "ent-venues", type: "ent-venues" },
-      { id: "ent-nickelodeon", type: "ent-nickelodeon" },
-      { id: "ent-aquarium", type: "ent-aquarium" },
-    ]
-  },
-  {
-    id: "events", label: "Events", icon: <Calendar size={13} />,
-    slides: [
-      { id: "events-hero", type: "events-hero" },
-      { id: "events-spaces", type: "events-spaces" },
-      { id: "events-production", type: "events-production" },
-      { id: "events-past", type: "events-past" },
-    ]
-  },
-  {
-    id: "sponsorship", label: "Sponsorship", icon: <Target size={13} />,
-    slides: [
-      { id: "sponsor-intro", type: "sponsor-intro" },
-      { id: "sponsor-tiers", type: "sponsor-tiers" },
-      { id: "sponsor-digital", type: "sponsor-digital" },
-      { id: "sponsor-activation", type: "sponsor-activation" },
-    ]
-  },
-  {
-    id: "data", label: "Data & Insights", icon: <BarChart2 size={13} />,
-    slides: [
-      { id: "data-overview", type: "data-overview" },
-      { id: "data-demographics", type: "data-demographics" },
-      { id: "data-dwell", type: "data-dwell" },
-    ]
-  },
-  {
-    id: "contact", label: "Contact", icon: <Phone size={13} />,
-    slides: [
-      { id: "contact-team", type: "contact-team" },
-      { id: "contact-form", type: "contact-form" },
-    ]
-  },
-];
-
-const ALL = SECTIONS.flatMap((sec, si) =>
-  sec.slides.map((sl, li) => ({ ...sl, si, li }))
-);
-
-
-const V = {
-  enter: d => ({ opacity: 0, x: d > 0 ? 80 : -80, scale: 0.96 }),
-  center: { opacity: 1, x: 0, scale: 1, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } },
-  exit: d => ({ opacity: 0, x: d > 0 ? -80 : 80, scale: 0.96, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }),
+const IMG = {
+  retail: "https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=1800&q=95",
+  luxury: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1800&q=95",
+  dining: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1800&q=95",
+  events: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1800&q=95",
+  story: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1800&q=95",
+  hub_why: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=900&q=85",
+  hub_ret: "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?w=900&q=85",
+  hub_ent: "https://images.unsplash.com/photo-1493676304819-0d7a8d026dcf?w=900&q=85",
+  hub_spo: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=900&q=85",
+  hub_mom: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=900&q=85",
+  hub_con: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=900&q=85",
+  ret_1: "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=800&q=85",
+  ret_2: "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?w=800&q=85",
+  ret_3: "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=800&q=85",
+  ret_4: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=85",
 };
 
+/* ── Responsive hook ── */
+function useBreakpoint() {
+  const [bp, setBp] = useState({ isMobile: false, isTablet: false, isDesktop: true });
+  useEffect(() => {
+    const check = () => {
+      const w = window.innerWidth;
+      setBp({ isMobile: w < 640, isTablet: w >= 640 && w < 1024, isDesktop: w >= 1024 });
+    };
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  return bp;
+}
+
+const SECTIONS = [
+  { id: "home", label: "Home", color: GOLD },
+  { id: "why", label: "Why MOA", color: "#C9915A" },
+  { id: "retail", label: "Retail", color: "#B8875C" },
+  { id: "entertainment", label: "Entertainment", color: "#5A7ABD" },
+  { id: "sponsorship", label: "Sponsorship", color: "#4A9A7A" },
+  { id: "moment", label: "★ Moment", color: GOLD },
+  { id: "contact", label: "Contact", color: "#8B9EA8" },
+];
+
+const SLIDES = [
+  { id: "hero", section: "home", label: "Overview" },
+  { id: "scale", section: "why", label: "Scale" },
+  { id: "audience", section: "why", label: "Audience" },
+  { id: "retail", section: "retail", label: "Retail" },
+  { id: "luxury", section: "retail", label: "Luxury" },
+  { id: "dining", section: "retail", label: "Dining" },
+  { id: "entertain", section: "entertainment", label: "Entertainment" },
+  { id: "events", section: "entertainment", label: "Events" },
+  { id: "sponsor", section: "sponsorship", label: "Sponsorship" },
+  { id: "moment-map", section: "moment", label: "Zone Map" },
+  { id: "moment-roi", section: "moment", label: "ROI Calculator" },
+  { id: "moment-why", section: "moment", label: "Why It Works" },
+  { id: "contact", section: "contact", label: "Contact" },
+];
+
+function Counter({ to, prefix = "", suffix = "", duration = 1.6, delay = 0, decimals = 0 }) {
+  const [val, setVal] = useState(0);
+  const raf = useRef(null);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const start = Date.now();
+      const step = () => {
+        const p = Math.min((Date.now() - start) / (duration * 1000), 1);
+        const e = 1 - Math.pow(1 - p, 3);
+        setVal(+(e * to).toFixed(decimals));
+        if (p < 1) raf.current = requestAnimationFrame(step);
+      };
+      raf.current = requestAnimationFrame(step);
+    }, delay * 1000);
+    return () => { clearTimeout(t); cancelAnimationFrame(raf.current); };
+  }, [to]);
+  return <>{prefix}{decimals > 0 ? val.toFixed(decimals) : val.toLocaleString()}{suffix}</>;
+}
+
+function Cursor() {
+  const { isDesktop } = useBreakpoint();
+  const mx = useMotionValue(-100), my = useMotionValue(-100);
+  const sx = useSpring(mx, { stiffness: 800, damping: 40 });
+  const sy = useSpring(my, { stiffness: 800, damping: 40 });
+  const [big, setBig] = useState(false);
+  useEffect(() => {
+    if (!isDesktop) return;
+    const mm = e => { mx.set(e.clientX); my.set(e.clientY); };
+    const mo = e => setBig(!!e.target.closest("button,a,[data-mag]"));
+    window.addEventListener("mousemove", mm);
+    window.addEventListener("mouseover", mo);
+    return () => { window.removeEventListener("mousemove", mm); window.removeEventListener("mouseover", mo); };
+  }, [isDesktop]);
+  if (!isDesktop) return null;
+  return (
+    <motion.div style={{
+      position: "fixed", top: 0, left: 0, x: sx, y: sy, zIndex: 9999, pointerEvents: "none",
+      translateX: "-50%", translateY: "-50%",
+      width: big ? 44 : 10, height: big ? 44 : 10, borderRadius: "50%",
+      background: big ? "transparent" : GOLD,
+      border: big ? `1.5px solid ${GOLD}` : "none",
+      mixBlendMode: "difference", transition: "width .18s,height .18s,background .18s"
+    }} />
+  );
+}
+
+function CinematicIntro({ onDone }) {
+  const [phase, setPhase] = useState("video");
+  const [vidErr, setVidErr] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setPhase("gate"), 2800); return () => clearTimeout(t); }, []);
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 900 }}>
+      <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+        {!vidErr
+          ? <video autoPlay muted loop playsInline onError={() => setVidErr(true)}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}>
+            <source src={HERO_VID} type="video/mp4" />
+          </video>
+          : <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 35% 55%,#1e1208,#050403 70%)" }} />
+        }
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom,rgba(5,4,3,.55) 0%,rgba(5,4,3,.15) 40%,rgba(5,4,3,.85) 100%)" }} />
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 50%,transparent 30%,rgba(5,4,3,.5) 100%)" }} />
+        <div style={{ position: "absolute", inset: 0, opacity: .025, backgroundImage: `linear-gradient(${GOLD} 1px,transparent 1px),linear-gradient(90deg,${GOLD} 1px,transparent 1px)`, backgroundSize: "90px 90px" }} />
+        <div style={{ position: "absolute", left: 0, right: 0, height: 4, background: `linear-gradient(to bottom,transparent,${GOLD}18,transparent)`, animation: "scanline 4s linear infinite", zIndex: 2, pointerEvents: "none" }} />
+      </div>
+
+      <AnimatePresence>
+        {phase === "video" && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 1.05 }} transition={{ duration: 1 }}
+            style={{ position: "absolute", inset: 0, zIndex: 5, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px" }}>
+            {[0, 1, 2].map(i => (
+              <motion.div key={i} initial={{ opacity: 0, scale: .5 }} animate={{ opacity: [0, .2, 0], scale: [.5, 2.2, 3] }}
+                transition={{ delay: i * .4 + .3, duration: 2.5, ease: "easeOut" }}
+                style={{ position: "absolute", top: "50%", left: "50%", width: `clamp(180px,${280 + i * 120}px,${280 + i * 120}px)`, height: `clamp(180px,${280 + i * 120}px,${280 + i * 120}px)`, borderRadius: "50%", border: `1px solid ${GOLD}`, transform: "translate(-50%,-50%)", pointerEvents: "none" }} />
+            ))}
+            <motion.div initial={{ opacity: 0, scale: .6 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: .2, duration: .9 }} style={{ marginBottom: 20 }}>
+              <MOAStar size={56} />
+            </motion.div>
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .5 }}
+              style={{ fontSize: "clamp(8px,1.5vw,10px)", color: GOLD, letterSpacing: "0.28em", textTransform: "uppercase", fontFamily: "var(--body)", fontWeight: 700, marginBottom: 14, textAlign: "center" }}>
+              Mall of America
+            </motion.p>
+            <motion.h1 initial={{ opacity: 0, y: 48 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .6, duration: 1, ease: [.16, 1, .3, 1] }}
+              style={{ fontFamily: "var(--display)", fontSize: "clamp(52px,11vw,148px)", lineHeight: .86, color: "#fff", textTransform: "uppercase", textAlign: "center", marginBottom: 16 }}>
+              More Than<br /><span className="shimmer-gold">A Mall.</span>
+            </motion.h1>
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }}
+              style={{ fontSize: "clamp(11px,1.4vw,14px)", color: "rgba(255,255,255,.38)", letterSpacing: "0.06em", fontFamily: "var(--body)", fontWeight: 300, textAlign: "center" }}>
+              Official Brand Partnership Deck · 2025
+            </motion.p>
+            <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.4 }}
+              data-mag onClick={() => setPhase("gate")}
+              style={{ position: "absolute", bottom: 24, right: 20, padding: "8px 16px", borderRadius: 3, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.14)", color: "rgba(255,255,255,.45)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer", fontFamily: "var(--body)" }}>
+              Skip →
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {phase === "gate" && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: .9 }}
+            style={{ position: "absolute", inset: 0, zIndex: 10, background: "rgba(5,4,3,.82)", backdropFilter: "blur(8px)" }}>
+            <PersonalizationGate onEnter={onDone} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+
+function PersonalizationGate({ onEnter }) {
+  const [brand, setBrand] = useState("");
+  const [category, setCategory] = useState(null);
+  const [step, setStep] = useState(1);
+  const cats = ["Retail / Fashion", "Luxury / Premium", "F&B / Dining", "Entertainment", "Sponsorship", "Events & Activations"];
+  const proceed = () => {
+    if (step === 1 && brand.trim()) setStep(2);
+    if (step === 2 && category) onEnter({ brand: brand.trim(), category });
+  };
+  return (
+    <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 20px", overflowY: "auto" }}>
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: "radial-gradient(ellipse at 50% 50%,rgba(212,168,67,.07) 0%,transparent 60%)" }} />
+      <div style={{ position: "absolute", inset: 0, opacity: .025, pointerEvents: "none", backgroundImage: `linear-gradient(${GOLD} 1px,transparent 1px),linear-gradient(90deg,${GOLD} 1px,transparent 1px)`, backgroundSize: "80px 80px" }} />
+      <div style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 520 }}>
+        <motion.div initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: .1, duration: .7 }}>
+          <MOAStar size={44} style={{ marginBottom: 20 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+            <div style={{ width: 36, height: 1.5, background: `linear-gradient(to right,${GOLD},transparent)` }} />
+            <span style={{ fontSize: "clamp(7px,1.5vw,9px)", color: GOLD, letterSpacing: "0.28em", textTransform: "uppercase", fontWeight: 700, fontFamily: "var(--body)" }}>
+              Official Brand Partnership Deck · 2025
+            </span>
+          </div>
+          <h1 style={{ fontFamily: "var(--display)", fontSize: "clamp(42px,8vw,88px)", lineHeight: .88, color: "#fff", textTransform: "uppercase", marginBottom: 10 }}>
+            Let's Make<br />This <span className="shimmer-gold">Yours.</span>
+          </h1>
+          <p style={{ fontSize: "clamp(12px,1.5vw,13px)", color: "rgba(255,255,255,.38)", lineHeight: 1.65, marginBottom: 24, fontFamily: "var(--body)" }}>
+            We personalize this deck to your brand. Takes 20 seconds.
+          </p>
+          <AnimatePresence mode="wait">
+            {step === 1 && (
+              <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <label style={{ fontSize: 9, color: "rgba(255,255,255,.35)", letterSpacing: "0.18em", textTransform: "uppercase", display: "block", marginBottom: 8, fontFamily: "var(--body)" }}>
+                  Your Brand / Company Name
+                </label>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <input value={brand} onChange={e => setBrand(e.target.value)} onKeyDown={e => e.key === "Enter" && proceed()} autoFocus
+                    placeholder="e.g. Nike, Sephora, Grand Hyatt…"
+                    style={{ flex: "1 1 200px", padding: "14px 16px", borderRadius: 4, fontSize: 16, fontWeight: 500, background: "rgba(255,255,255,.06)", border: `1px solid ${brand ? GOLD + "66" : "rgba(255,255,255,.12)"}`, color: "#fff", outline: "none", transition: "border .2s", fontFamily: "var(--body)" }} />
+                  <GoldButton large onClick={proceed} disabled={!brand.trim()}>Next <ArrowRight size={14} /></GoldButton>
+                </div>
+              </motion.div>
+            )}
+            {step === 2 && (
+              <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <label style={{ fontSize: 9, color: "rgba(255,255,255,.35)", letterSpacing: "0.18em", textTransform: "uppercase", display: "block", marginBottom: 10, fontFamily: "var(--body)" }}>
+                  What brings {brand} here?
+                </label>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 7, marginBottom: 18 }}>
+                  {cats.map(c => (
+                    <button key={c} data-mag onClick={() => setCategory(c)} style={{ padding: "12px 10px", borderRadius: 4, fontSize: "clamp(10px,1.5vw,11px)", fontWeight: 600, background: category === c ? `${GOLD}22` : "rgba(255,255,255,.05)", border: `1px solid ${category === c ? GOLD : "rgba(255,255,255,.1)"}`, color: category === c ? GOLD : "rgba(255,255,255,.5)", cursor: "pointer", transition: "all .2s", textAlign: "center", lineHeight: 1.3, fontFamily: "var(--body)" }}>{c}</button>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button onClick={() => setStep(1)} style={{ padding: "11px 18px", background: "none", border: "1px solid rgba(255,255,255,.15)", borderRadius: 4, color: "rgba(255,255,255,.4)", cursor: "pointer", fontSize: 11, fontFamily: "var(--body)" }}>← Back</button>
+                  <GoldButton large onClick={proceed} disabled={!category} style={{ flex: 1, justifyContent: "center", minWidth: 160 }}>
+                    Open {brand}'s Deck <ArrowRight size={14} />
+                  </GoldButton>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+        <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 24 }}>
+          {[1, 2].map(s => (<div key={s} style={{ width: s === step ? 24 : 6, height: 6, borderRadius: 3, background: s === step ? GOLD : "rgba(255,255,255,.15)", transition: "all .3s" }} />))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 
 export default function App() {
+  const [phase, setPhase] = useState("intro");
+  const [persona, setPersona] = useState(null);
+  const [view, setView] = useState("hub");
   const [idx, setIdx] = useState(0);
   const [dir, setDir] = useState(1);
-  const [modal, setModal] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [expandedSec, setExpandedSec] = useState(null);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+  const [animKey, setAnimKey] = useState(0);
+  const [activeSection, setActiveSection] = useState("home");
+  const { isMobile, isTablet, isDesktop } = useBreakpoint();
 
-  const cur = ALL[idx];
-  const sec = SECTIONS[cur.si];
+  const handleEnter = useCallback((p) => { setPersona(p); setPhase("deck"); }, []);
 
-  const goTo = useCallback((i) => {
-    if (i === idx || i < 0 || i >= ALL.length) return;
-    setDir(i > idx ? 1 : -1);
-    setIdx(i);
+  const goTo = useCallback((i, d = null) => {
+    if (i === idx || i < 0 || i >= SLIDES.length) return;
+    setDir(d ?? (i > idx ? 1 : -1));
+    setIdx(i); setAnimKey(k => k + 1);
+    setActiveSection(SLIDES[i].section);
   }, [idx]);
 
-  const goSec = useCallback((si) => {
-    const i = ALL.findIndex(s => s.si === si);
-    goTo(i);
-    setSidebarOpen(false);
-  }, [goTo]);
+  const goToSection = useCallback((sectionId) => {
+    const i = SLIDES.findIndex(s => s.section === sectionId);
+    if (i !== -1) { setActiveSection(sectionId); setIdx(i); setAnimKey(k => k + 1); setView("section"); setNavOpen(false); }
+  }, []);
 
-  const goSlide = useCallback((slideId) => {
-    const i = ALL.findIndex(s => s.id === slideId);
-    if (i >= 0) { goTo(i); setSidebarOpen(false); }
-  }, [goTo]);
+  const goToSlide = useCallback((slideIdx) => {
+    setIdx(slideIdx); setAnimKey(k => k + 1);
+    setActiveSection(SLIDES[slideIdx].section); setView("section"); setNavOpen(false);
+  }, []);
 
   useEffect(() => {
-    if (modal) return;
     const fn = e => {
+      if (aiOpen || contactOpen || view === "hub") return;
       if (e.key === "ArrowRight" || e.key === "ArrowDown") goTo(idx + 1);
       if (e.key === "ArrowLeft" || e.key === "ArrowUp") goTo(idx - 1);
-      if (e.key === "Escape") setSidebarOpen(false);
+      if (e.key === "Escape") setView("hub");
     };
     window.addEventListener("keydown", fn);
     return () => window.removeEventListener("keydown", fn);
-  }, [idx, goTo, modal]);
+  }, [idx, goTo, aiOpen, contactOpen, view]);
 
-  useEffect(() => { document.body.style.overflow = "hidden"; }, []);
+  const cur = SLIDES[idx];
+  const curSection = SECTIONS.find(s => s.id === cur.section);
+  const sectionSlides = SLIDES.filter(s => s.section === cur.section);
+  const sectionPos = sectionSlides.findIndex(s => s.id === cur.id);
+  const sectionProgress = sectionSlides.length > 1 ? (sectionPos / (sectionSlides.length - 1)) * 100 : 100;
 
-  const secSlides = ALL.filter(s => s.si === cur.si);
-  const F = { fontFamily: "'DM Sans', sans-serif" };
+  if (phase === "intro") return (
+    <>
+      <Cursor />
+      <CinematicIntro onDone={handleEnter} />
+    </>
+  );
 
-
-  useEffect(() => { setExpandedSec(cur.si); }, [cur.si]);
+  const BOTTOM_H = isMobile ? 48 : 52;
+  const TOP_H = isMobile ? 48 : 52;
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#080808", display: "flex", alignItems: "center", justifyContent: "center", ...F }}>
-      <div style={{
-        position: "relative", display: "flex", flexDirection: "column",
-        width: "min(100vw, calc(100vh * 16/9))",
-        height: "min(100vh, calc(100vw * 9/16))",
-        boxShadow: "0 0 100px rgba(0,0,0,0.9)",
-      }}>
+    <div style={{ position: "fixed", inset: 0, background: DARK, fontFamily: "var(--body)", overflow: "hidden" }}>
+      <Cursor />
 
 
-        <div style={{
-          height: 48, background: "rgba(6,6,6,0.98)", borderBottom: "1px solid rgba(255,255,255,0.06)",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "0 16px", flexShrink: 0, zIndex: 50, position: "relative"
-        }}>
+      <TopNav sections={SECTIONS} slides={SLIDES} idx={idx} activeSection={activeSection}
+        goToSection={goToSection} goToSlide={goToSlide} persona={persona}
+        view={view} onHubClick={() => setView("hub")}
+        navOpen={navOpen} setNavOpen={setNavOpen}
+        isMobile={isMobile} isTablet={isTablet} />
 
-
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{
-              width: 34, height: 34, display: "flex", flexDirection: "column",
-              alignItems: "center", justifyContent: "center", gap: 4,
-              background: sidebarOpen ? "rgba(255,255,255,0.08)" : "transparent",
-              border: "1px solid rgba(255,255,255,0.08)", borderRadius: 4, cursor: "pointer", transition: "all 0.2s"
-            }}>
-              <motion.span animate={{ rotate: sidebarOpen ? 45 : 0, y: sidebarOpen ? 8 : 0 }} style={{ display: "block", width: 14, height: 1.5, background: "#fff", borderRadius: 2 }} />
-              <motion.span animate={{ opacity: sidebarOpen ? 0 : 1 }} style={{ display: "block", width: 14, height: 1.5, background: "#fff", borderRadius: 2 }} />
-              <motion.span animate={{ rotate: sidebarOpen ? -45 : 0, y: sidebarOpen ? -8 : 0 }} style={{ display: "block", width: 14, height: 1.5, background: "#fff", borderRadius: 2 }} />
-            </button>
-            <button onClick={() => goSec(0)} style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer" }}>
-              <MOALogo size={22} />
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: "#fff", textTransform: "uppercase", lineHeight: 1 }}>Mall of America</div>
-                <div style={{ fontSize: 8, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", textTransform: "uppercase" }}>Brand Partnership Deck</div>
-              </div>
-            </button>
-          </div>
-
-          <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 9, fontWeight: 600, color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em", textTransform: "uppercase" }}>{sec.label}</span>
-            <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 9 }}>›</span>
-            <span style={{ fontSize: 9, fontWeight: 500, color: "rgba(255,255,255,0.55)", letterSpacing: "0.06em" }}>
-              {cur.id.split("-").map(w => w[0].toUpperCase() + w.slice(1)).join(" ")}
-            </span>
-          </div>
-
-
-          <button onClick={() => setModal("contact")} style={{
-            fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
-            padding: "6px 16px", borderRadius: 3, background: "linear-gradient(135deg,#c9a227,#e8630a)",
-            color: "#fff", border: "none", cursor: "pointer"
-          }}>
-            Get In Touch
-          </button>
-        </div>
-
-
-        <AnimatePresence>
-          {sidebarOpen && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                onClick={() => setSidebarOpen(false)}
-                style={{ position: "absolute", inset: 0, zIndex: 55, background: "rgba(0,0,0,0.6)", top: 48 }}
-              />
-              <motion.div
-                initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
-                transition={{ type: "tween", duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-                style={{
-                  position: "absolute", left: 0, top: 48, bottom: 0, zIndex: 60,
-                  width: "clamp(200px, 28%, 280px)",
-                  background: "rgba(8,8,8,0.99)", borderRight: "1px solid rgba(255,255,255,0.07)",
-                  overflowY: "auto", display: "flex", flexDirection: "column"
-                }}>
-
-                <div style={{ padding: "16px 16px 10px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                  <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.16em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: 4 }}>Navigation</div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)" }}>{ALL.length} slides across {SECTIONS.length} sections</div>
-                </div>
-
-                <div style={{ flex: 1, padding: "8px 0" }}>
-                  {SECTIONS.map((s, si) => {
-                    const isActiveSec = cur.si === si;
-                    const isExpanded = expandedSec === si;
-                    const secSlideList = ALL.filter(sl => sl.si === si);
+      <AnimatePresence>
+        {navOpen && (
+          <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "tween", duration: .28 }}
+            style={{ position: "fixed", top: TOP_H, right: 0, bottom: 0, width: "min(300px,85vw)", background: "rgba(8,6,4,.98)", backdropFilter: "blur(20px)", zIndex: 150, borderLeft: "1px solid rgba(255,255,255,.08)", overflowY: "auto" }}>
+            {SECTIONS.filter(s => s.id !== "home").map(sec => {
+              const secSlides = SLIDES.filter(s => s.section === sec.id);
+              return (
+                <div key={sec.id}>
+                  <button onClick={() => goToSection(sec.id)} style={{ width: "100%", padding: "14px 20px", background: activeSection === sec.id ? `${sec.color}14` : "none", border: "none", borderLeft: `3px solid ${activeSection === sec.id ? sec.color : "transparent"}`, textAlign: "left", color: activeSection === sec.id ? "#fff" : "rgba(255,255,255,.5)", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer", fontFamily: "var(--body)" }}>
+                    {sec.label}
+                  </button>
+                  {secSlides.length > 1 && secSlides.map(sl => {
+                    const si = SLIDES.findIndex(s => s.id === sl.id);
                     return (
-                      <div key={s.id}>
-                        <button
-                          onClick={() => { setExpandedSec(isExpanded ? null : si); if (!isExpanded) goSec(si); }}
-                          style={{
-                            width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                            padding: "9px 16px", background: isActiveSec ? "rgba(255,255,255,0.05)" : "transparent",
-                            border: "none", cursor: "pointer", transition: "all 0.15s",
-                            borderLeft: isActiveSec ? "2px solid #c9a227" : "2px solid transparent"
-                          }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <span style={{ color: isActiveSec ? "#c9a227" : "rgba(255,255,255,0.3)" }}>{s.icon}</span>
-                            <span style={{ fontSize: 11, fontWeight: isActiveSec ? 700 : 500, color: isActiveSec ? "#fff" : "rgba(255,255,255,0.5)", letterSpacing: "0.03em" }}>{s.label}</span>
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <span style={{ fontSize: 8, color: "rgba(255,255,255,0.2)", fontWeight: 600 }}>{secSlideList.length}</span>
-                            <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                              <ChevronDown size={10} style={{ color: "rgba(255,255,255,0.25)" }} />
-                            </motion.div>
-                          </div>
-                        </button>
-                        <AnimatePresence>
-                          {isExpanded && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.22 }} style={{ overflow: "hidden" }}>
-                              {secSlideList.map((sl, li) => {
-                                const isCurrentSlide = sl.id === cur.id;
-                                const label = sl.id.split("-").slice(1).join(" ") || sl.id;
-                                return (
-                                  <button key={sl.id} onClick={() => goSlide(sl.id)}
-                                    style={{
-                                      width: "100%", display: "flex", alignItems: "center", gap: 10,
-                                      padding: "7px 16px 7px 36px", background: isCurrentSlide ? "rgba(201,162,39,0.08)" : "transparent",
-                                      border: "none", cursor: "pointer", textAlign: "left", transition: "all 0.15s"
-                                    }}>
-                                    <span style={{ fontSize: 8, color: isCurrentSlide ? "#c9a227" : "rgba(255,255,255,0.2)", fontWeight: 700, minWidth: 14 }}>
-                                      {String(li + 1).padStart(2, "0")}
-                                    </span>
-                                    <span style={{ fontSize: 10, color: isCurrentSlide ? "#c9a227" : "rgba(255,255,255,0.38)", fontWeight: isCurrentSlide ? 600 : 400, textTransform: "capitalize" }}>
-                                      {label}
-                                    </span>
-                                    {isCurrentSlide && <div style={{ marginLeft: "auto", width: 4, height: 4, borderRadius: "50%", background: "#c9a227" }} />}
-                                  </button>
-                                );
-                              })}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
+                      <button key={sl.id} onClick={() => goToSlide(si)} style={{ width: "100%", padding: "9px 20px 9px 36px", background: "none", border: "none", borderLeft: `1px solid ${sec.color}30`, textAlign: "left", color: "rgba(255,255,255,.35)", fontSize: 10, cursor: "pointer", fontFamily: "var(--body)", display: "block" }}>
+                        {sl.label}
+                      </button>
                     );
                   })}
                 </div>
-
-                <div style={{ padding: 14, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                  <button onClick={() => { setModal("contact"); setSidebarOpen(false); }} style={{
-                    width: "100%", padding: "8px 0", borderRadius: 4, background: "linear-gradient(135deg,#c9a227,#e8630a)",
-                    color: "#fff", fontSize: 10, fontWeight: 700, border: "none", cursor: "pointer", letterSpacing: "0.08em", textTransform: "uppercase"
-                  }}>Schedule a Meeting</button>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-
-
-        <div style={{ position: "relative", flex: 1, overflow: "hidden", background: "#000" }}>
-          <AnimatePresence custom={dir} mode="wait">
-            <motion.div key={cur.id} custom={dir} variants={V} initial="enter" animate="center" exit="exit"
-              style={{ position: "absolute", inset: 0 }}>
-              <SlideRenderer type={cur.type} openModal={setModal} goNext={() => goTo(idx + 1)} goPrev={() => goTo(idx - 1)} />
-            </motion.div>
-          </AnimatePresence>
-
-
-          {idx > 0 && (
-            <button onClick={() => goTo(idx - 1)} style={{
-              position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)",
-              zIndex: 20, width: 34, height: 34, borderRadius: 4,
-              background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.1)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", cursor: "pointer", backdropFilter: "blur(10px)"
-            }}>
-              <ChevronLeft size={14} />
-            </button>
-          )}
-
-          {idx < ALL.length - 1 && (
-            <button onClick={() => goTo(idx + 1)} style={{
-              position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
-              zIndex: 20, width: 34, height: 34, borderRadius: 4,
-              background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.1)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", cursor: "pointer", backdropFilter: "blur(10px)"
-            }}>
-              <ChevronRight size={14} />
-            </button>
-          )}
-
-
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: "rgba(255,255,255,0.05)", zIndex: 10 }}>
-            <motion.div
-              style={{ height: "100%", background: "linear-gradient(90deg,#c9a227,#e8630a)", borderRadius: 1 }}
-              animate={{ width: `${((idx + 1) / ALL.length) * 100}%` }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-            />
-          </div>
-        </div>
-
-
-        <div style={{
-          height: 38, background: "rgba(6,6,6,0.98)", borderTop: "1px solid rgba(255,255,255,0.06)",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "0 14px", flexShrink: 0, zIndex: 50
-        }}>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", color: "#c9a227", textTransform: "uppercase" }}>{sec.label}</span>
-            <div style={{ display: "flex", gap: 3 }}>
-              {secSlides.map(sl => {
-                const a = sl.id === cur.id;
-                return (
-                  <button key={sl.id} onClick={() => goTo(ALL.findIndex(s => s.id === sl.id))}
-                    style={{ width: a ? 16 : 4, height: 4, borderRadius: 2, background: a ? "#c9a227" : "rgba(255,255,255,0.18)", border: "none", cursor: "pointer", padding: 0, transition: "all 0.3s" }} />
-                );
-              })}
-            </div>
-          </div>
-
-          <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", display: "flex", gap: 4 }}>
-            {SECTIONS.map((s, si) => {
-              const a = cur.si === si;
-              return (
-                <button key={s.id} onClick={() => goSec(si)}
-                  style={{ width: a ? 16 : 4, height: 4, borderRadius: 2, background: a ? "#c9a227" : "rgba(255,255,255,0.15)", border: "none", cursor: "pointer", padding: 0, transition: "all 0.3s" }} />
               );
             })}
-          </div>
-
-
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.22)", fontVariantNumeric: "tabular-nums", letterSpacing: "0.05em", fontFamily: "'DM Mono', monospace" }}>
-              {String(idx + 1).padStart(2, "0")} / {String(ALL.length).padStart(2, "0")}
-            </span>
-            {[
-              { fn: () => goTo(idx - 1), disabled: idx === 0, icon: <ChevronLeft size={11} /> },
-              { fn: () => goTo(idx + 1), disabled: idx === ALL.length - 1, icon: <ChevronRight size={11} /> }
-            ].map(({ fn, disabled, icon }, i) => (
-              <button key={i} onClick={fn} disabled={disabled}
-                style={{
-                  width: 22, height: 22, borderRadius: 3,
-                  background: disabled ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.08)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: disabled ? "rgba(255,255,255,0.12)" : "#fff", cursor: disabled ? "default" : "pointer"
-                }}>{icon}</button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <ContactModal show={modal === "contact"} onClose={() => setModal(null)} />
-      <LeasingModal show={modal === "leasing"} onClose={() => setModal(null)} />
-      <EventModal show={modal === "events"} onClose={() => setModal(null)} />
-      <SponsorModal show={modal === "sponsorship"} onClose={() => setModal(null)} />
-    </div>
-  );
-}
-
-
-const PD = { fontFamily: "'Playfair Display', serif" };
-
-function MOALogo({ size = 24 }) {
-  return (
-    <svg viewBox="0 0 100 100" style={{ width: size, height: size }}>
-      <defs>
-        <linearGradient id="moa-g" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#c9a227" />
-          <stop offset="100%" stopColor="#e8630a" />
-        </linearGradient>
-      </defs>
-      <polygon points="50,8 62,36 92,36 69,54 78,82 50,64 22,82 31,54 8,36 38,36" fill="url(#moa-g)" />
-    </svg>
-  );
-}
-
-function Slide({ bg = "#000", children, style = {} }) {
-  return (
-    <div style={{
-      width: "100%", height: "100%", background: bg, overflow: "hidden",
-      display: "flex", flexDirection: "column", justifyContent: "center",
-      padding: "4% 7%", boxSizing: "border-box", ...style
-    }}>
-      {children}
-    </div>
-  );
-}
-
-function Tag({ children, color = "#c9a227" }) {
-  return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: "2.5%" }}>
-      <div style={{ width: 18, height: 2, background: color }} />
-      <span style={{ fontSize: "clamp(7px,0.8vw,9px)", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color }}>{children}</span>
-    </div>
-  );
-}
-
-function H({ children, dark = true, size = "lg", italic = false }) {
-  const fs = { xl: "clamp(28px,7vw,88px)", lg: "clamp(18px,4.2vw,54px)", md: "clamp(14px,2.6vw,32px)", sm: "clamp(12px,2vw,24px)" }[size] || "clamp(18px,4.2vw,54px)";
-  return (
-    <h2 style={{
-      ...PD, fontSize: fs, fontWeight: 700, fontStyle: italic ? "italic" : "normal",
-      color: dark ? "#fff" : "#111", lineHeight: 0.94, letterSpacing: "-0.02em",
-      textTransform: "uppercase", margin: 0, marginBottom: "2%"
-    }}>{children}</h2>
-  );
-}
-
-function Sub({ children, dark = true }) {
-  return (
-    <p style={{ fontSize: "clamp(8px,1.05vw,13px)", color: dark ? "rgba(255,255,255,0.45)" : "#777", fontWeight: 300, lineHeight: 1.65, margin: 0, marginBottom: "3%" }}>
-      {children}
-    </p>
-  );
-}
-
-function GoldBtn({ onClick, children, outline = false }) {
-  return (
-    <motion.button onClick={onClick} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-      style={{
-        background: outline ? "transparent" : "linear-gradient(135deg,#c9a227,#e8630a)",
-        color: outline ? "#c9a227" : "#fff",
-        border: outline ? "1px solid #c9a227" : "none",
-        padding: "clamp(7px,1vw,11px) clamp(16px,2.4vw,28px)",
-        borderRadius: 3, fontSize: "clamp(8px,0.85vw,10px)", fontWeight: 700,
-        letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer",
-        display: "inline-flex", alignItems: "center", gap: 6
-      }}>{children}</motion.button>
-  );
-}
-
-function Metric({ value, label, sub, accent = "#c9a227" }) {
-  return (
-    <div style={{ textAlign: "center", padding: "clamp(12px,2vw,24px) clamp(8px,1.5vw,18px)", borderRadius: 8, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
-      <div style={{ fontSize: "clamp(22px,3.5vw,44px)", fontWeight: 900, color: accent, lineHeight: 1, marginBottom: "6%" }}>{value}</div>
-      <div style={{ fontSize: "clamp(8px,1vw,12px)", fontWeight: 700, color: "#fff", marginBottom: "3%", letterSpacing: "0.04em" }}>{label}</div>
-      {sub && <div style={{ fontSize: "clamp(6px,0.75vw,9px)", color: "rgba(255,255,255,0.3)" }}>{sub}</div>}
-    </div>
-  );
-}
-
-function CardGrid({ children, cols = 3 }) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols},1fr)`, gap: "clamp(6px,1.1vw,14px)", marginTop: "3%" }}>
-      {children}
-    </div>
-  );
-}
-
-
-function SlideRenderer({ type, openModal, goNext, goPrev }) {
-  const p = { openModal, goNext, goPrev };
-  const map = {
-    "hero": <SlideHero {...p} />,
-    "intro-video": <SlideIntroVideo {...p} />,
-    "why-stats": <SlideWhyStats />,
-    "why-location": <SlideWhyLocation />,
-    "why-audience": <SlideWhyAudience />,
-    "why-media": <SlideWhyMedia />,
-    "retail-hero": <SlideRetailHero {...p} />,
-    "retail-brands": <SlideRetailBrands {...p} />,
-    "retail-categories": <SlideRetailCategories {...p} />,
-    "retail-leasing": <SlideRetailLeasing {...p} />,
-    "retail-popup": <SlideRetailPopup {...p} />,
-    "luxury-hero": <SlideLuxuryHero {...p} />,
-    "luxury-metrics": <SlideLuxuryMetrics {...p} />,
-    "luxury-brands": <SlideLuxuryBrands {...p} />,
-    "dining-hero": <SlideDiningHero />,
-    "dining-concepts": <SlideDiningConcepts />,
-    "dining-stats": <SlideDiningStats />,
-    "ent-hero": <SlideEntHero {...p} />,
-    "ent-venues": <SlideEntVenues {...p} />,
-    "ent-nickelodeon": <SlideEntNick />,
-    "ent-aquarium": <SlideEntAquarium />,
-    "events-hero": <SlideEventsHero {...p} />,
-    "events-spaces": <SlideEventsSpaces {...p} />,
-    "events-production": <SlideEventsProduction />,
-    "events-past": <SlideEventsPast {...p} />,
-    "sponsor-intro": <SlideSponsorIntro {...p} />,
-    "sponsor-tiers": <SlideSponsorTiers {...p} />,
-    "sponsor-digital": <SlideSponsorDigital />,
-    "sponsor-activation": <SlideSponsorActivation {...p} />,
-    "data-overview": <SlideDataOverview />,
-    "data-demographics": <SlideDataDemographics />,
-    "data-dwell": <SlideDataDwell />,
-    "contact-team": <SlideContactTeam {...p} />,
-    "contact-form": <SlideContactForm {...p} />,
-  };
-  return map[type] || null;
-}
-
-
-function SlideHero({ openModal, goNext }) {
-  const [err, setErr] = useState(false);
-  return (
-    <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      {!err
-        ? <video autoPlay muted loop playsInline onError={() => setErr(true)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}><source src={HERO_VIDEO} type="video/mp4" /></video>
-        : <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg,#1a0f00,#000)" }} />
-      }
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom,rgba(0,0,0,0.35) 0%,rgba(0,0,0,0.15) 40%,rgba(0,0,0,0.82) 100%)" }} />
-
-      {/* Decorative lines */}
-      <div style={{ position: "absolute", top: "15%", left: "7%", width: 1, height: "60%", background: "rgba(201,162,39,0.15)" }} />
-      <div style={{ position: "absolute", top: "15%", right: "7%", width: 1, height: "60%", background: "rgba(201,162,39,0.15)" }} />
-
-      <div style={{ position: "relative", zIndex: 10, textAlign: "center", padding: "0 12%", maxWidth: "100%" }}>
-        <motion.div initial={{ opacity: 0, scale: 0.5, rotate: -180 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} transition={{ duration: 1.2, ease: "easeOut" }}
-          style={{ marginBottom: "3.5%", display: "flex", justifyContent: "center" }}>
-          <MOALogo size={64} />
-        </motion.div>
-        <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-          style={{ fontSize: "clamp(7px,0.9vw,11px)", letterSpacing: "0.3em", textTransform: "uppercase", color: "#c9a227", marginBottom: "2%" }}>
-          Official Brand Partnership Deck 2025
-        </motion.p>
-        <motion.h1 initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.3 }}
-          style={{ ...PD, fontSize: "clamp(32px,9vw,112px)", fontWeight: 700, color: "#fff", lineHeight: 0.88, letterSpacing: "-0.025em", textTransform: "uppercase", margin: "0 0 3%" }}>
-          More<br /><em style={{ fontStyle: "italic", color: "#c9a227" }}>Than</em><br />A Mall
-        </motion.h1>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-          style={{ fontSize: "clamp(9px,1.4vw,17px)", color: "rgba(255,255,255,0.5)", fontWeight: 300, letterSpacing: "0.08em", marginBottom: "4.5%" }}>
-          Where 40 million visitors meet the world's most powerful brands
-        </motion.p>
-        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.1 }}
-          style={{ display: "flex", gap: "clamp(6px,1.2vw,14px)", justifyContent: "center" }}>
-          <GoldBtn onClick={goNext}>Explore Deck <ArrowRight size={12} /></GoldBtn>
-          <GoldBtn onClick={() => openModal("contact")} outline>Schedule a Meeting</GoldBtn>
-        </motion.div>
-      </div>
-
-      {/* Scroll indicator */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }}
-        style={{ position: "absolute", bottom: "10%", left: "50%", transform: "translateX(-50%)", textAlign: "center", cursor: "pointer" }} onClick={goNext}>
-        <div style={{ fontSize: "clamp(6px,0.75vw,9px)", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 8 }}>Scroll</div>
-        <motion.div animate={{ y: [0, 8, 0] }} transition={{ duration: 1.6, repeat: Infinity }}
-          style={{ width: 1, height: 28, background: "rgba(255,255,255,0.25)", margin: "0 auto" }} />
-      </motion.div>
-    </div>
-  );
-}
-
-function SlideIntroVideo({ goNext }) {
-  return (
-    <div style={{ width: "110%", height: "100%", background: "#000", display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 8%" }}>
-        <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7 }}>
-          <Tag>Our Story</Tag>
-          <H size="xl">America's<br /><em style={{ fontStyle: "italic", color: "#c9a227" }}>Greatest</em><br />Destination</H>
-          <Sub>Founded in 1992, Mall of America is more than retail — it's a living, breathing cultural platform hosting 40 million people from every corner of the globe every single year.</Sub>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: "6%" }}>
-            {[["1992", "Founded"], ["500+", "Brands"], ["32", "Years of growth"], ["#1", "US destination"]].map(([v, l]) => (
-              <div key={l} style={{ padding: "10px 14px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                <div style={{ fontSize: "clamp(14px,2vw,22px)", fontWeight: 900, color: "#c9a227" }}>{v}</div>
-                <div style={{ fontSize: "clamp(7px,0.85vw,10px)", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em", marginTop: 3 }}>{l}</div>
-              </div>
-            ))}
-          </div>
-          <GoldBtn onClick={goNext}>Discover Why MOA <ArrowRight size={12} /></GoldBtn>
-        </motion.div>
-      </div>
-      <div style={{ position: "relative", overflow: "hidden" }}>
-        <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=900&q=80" alt="Mall" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(0,0,0,0.5) 0%, transparent 40%)" }} />
-        <div style={{ position: "absolute", bottom: "8%", right: "8%", padding: "12px 18px", borderRadius: 8, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(12px)", border: "1px solid rgba(201,162,39,0.3)" }}>
-          <div style={{ fontSize: "clamp(14px,2vw,22px)", fontWeight: 900, color: "#c9a227" }}>5.6M</div>
-          <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Square Feet</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SlideWhyStats() {
-  const stats = [
-    { v: "40M+", l: "Annual Visitors", s: "More than most US cities" },
-    { v: "5.6M", l: "Square Feet", s: "Largest retail in the US" },
-    { v: "$4.2B", l: "Annual Revenue Impact", s: "Statewide economic output" },
-    { v: "12,000", l: "Jobs Created", s: "Direct & indirect employment" },
-  ];
-  return (
-    <div style={{ width: "100%", height: "100%", background: "#fff", display: "flex", flexDirection: "column", justifyContent: "center", padding: "5% 7%" }}>
-      <Tag color="#c9a227">By The Numbers</Tag>
-      <H dark={false} size="lg">The Scale of<br />Mall of America</H>
-      <Sub dark={false}>A destination unlike anything else in North America — and the numbers prove it.</Sub>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "clamp(6px,1.2vw,16px)", marginTop: "2%" }}>
-        {stats.map((s, i) => (
-          <motion.div key={s.l} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1, duration: 0.5 }} whileHover={{ scale: 1.04, y: -4 }}>
-            <div style={{ textAlign: "center", padding: "clamp(12px,2vw,24px)", borderRadius: 10, background: "#f8f5ef", border: "1px solid #ece8e0" }}>
-              <div style={{ fontSize: "clamp(22px,3.5vw,44px)", fontWeight: 900, color: "#c9a227", marginBottom: "6%" }}>{s.v}</div>
-              <div style={{ fontSize: "clamp(8px,1vw,12px)", fontWeight: 700, color: "#111", marginBottom: "4%" }}>{s.l}</div>
-              <div style={{ fontSize: "clamp(6px,0.8vw,10px)", color: "#999" }}>{s.s}</div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "clamp(6px,1.2vw,16px)", marginTop: "clamp(6px,1.2vw,16px)" }}>
-        {[["$200+", "Avg Spend per Visit"], ["365", "Days Open Yearly"], ["100+", "Countries Represented"]].map(([v, l]) => (
-          <div key={l} style={{ padding: "clamp(8px,1.2vw,14px)", borderRadius: 8, background: "#111", display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ fontSize: "clamp(16px,2.5vw,30px)", fontWeight: 900, color: "#c9a227", minWidth: "max-content" }}>{v}</div>
-            <div style={{ fontSize: "clamp(7px,0.9vw,11px)", color: "rgba(255,255,255,0.6)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" }}>{l}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SlideWhyLocation() {
-  return (
-    <Slide bg="#0e0e0e">
-      <Tag>Strategic Location</Tag>
-      <H size="lg">At the Center<br />of Everything</H>
-      <Sub>Bloomington, MN — minutes from MSP International Airport, accessible to 60% of the US population within a one-day drive.</Sub>
-      <CardGrid cols={3}>
-        {[
-          { icon: <MapPin size={18} />, title: "MSP Airport", body: "8 minutes from Terminal 1. Direct access for 40M+ passengers annually. International gateway." },
-          { icon: <Car size={18} />, title: "Highway Access", body: "Intersects I-494, I-35W, and MN-77. 20,000+ parking spaces. Free shuttle network." },
-          { icon: <Globe size={18} />, title: "National Draw", body: "Visitors from all 50 states and 100+ countries. 35% of visitors travel 150+ miles." },
-          { icon: <Users size={18} />, title: "Metro Population", body: "3.7M metro residents within 30-minute reach. Upper Midwest's #1 retail hub." },
-          { icon: <Wifi size={18} />, title: "Connected Campus", body: "Full 5G coverage. Smart parking. Digital wayfinding throughout the entire campus." },
-          { icon: <Shield size={18} />, title: "Safe & Welcoming", body: "Award-winning security. Family-first environment. Consistently rated top US destination." },
-        ].map((c, i) => (
-          <motion.div key={c.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-            style={{ padding: "clamp(12px,1.8vw,20px)", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
-            <div style={{ color: "#c9a227", marginBottom: "10%", opacity: 0.85 }}>{c.icon}</div>
-            <div style={{ fontSize: "clamp(10px,1.2vw,14px)", fontWeight: 700, color: "#fff", marginBottom: "5%" }}>{c.title}</div>
-            <div style={{ fontSize: "clamp(7px,0.9vw,11px)", color: "rgba(255,255,255,0.4)", lineHeight: 1.65 }}>{c.body}</div>
-          </motion.div>
-        ))}
-      </CardGrid>
-    </Slide>
-  );
-}
-
-function SlideWhyAudience() {
-  const bars = [
-    { label: "Age 18–34", pct: 38, color: "#c9a227" },
-    { label: "Age 35–54", pct: 32, color: "#e8630a" },
-    { label: "Age 55+", pct: 18, color: "#a16207" },
-    { label: "Under 18", pct: 12, color: "#78350f" },
-  ];
-  return (
-    <div style={{ width: "100%", height: "100%", background: "#fff", display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "5% 6% 5% 7%", borderRight: "1px solid #ece8e0" }}>
-        <Tag color="#c9a227">Our Audience</Tag>
-        <H dark={false} size="lg">Premium<br />Demographics</H>
-        <Sub dark={false}>Our visitors aren't just shoppers — they're high-intent consumers with premium purchasing power.</Sub>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: "3%" }}>
-          {[["70%", "Affluent HH $85K+"], ["62%", "Female-led Shopping"], ["55%", "Out-of-state Visitors"], ["3.2h", "Average Dwell Time"]].map(([v, l]) => (
-            <div key={l} style={{ padding: "12px 14px", borderRadius: 8, background: "#f8f5ef", border: "1px solid #ece8e0" }}>
-              <div style={{ fontSize: "clamp(16px,2.3vw,28px)", fontWeight: 900, color: "#c9a227" }}>{v}</div>
-              <div style={{ fontSize: "clamp(7px,0.85vw,10px)", color: "#777", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 4 }}>{l}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "5% 7% 5% 6%" }}>
-        <div style={{ fontSize: "clamp(9px,1.1vw,13px)", fontWeight: 700, color: "#111", marginBottom: "6%", textTransform: "uppercase", letterSpacing: "0.08em" }}>Age Breakdown</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {bars.map((b, i) => (
-            <div key={b.label}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: "clamp(8px,0.95vw,11px)", color: "#555", fontWeight: 500 }}>{b.label}</span>
-                <span style={{ fontSize: "clamp(8px,0.95vw,11px)", color: "#111", fontWeight: 700 }}>{b.pct}%</span>
-              </div>
-              <div style={{ height: 8, background: "#ece8e0", borderRadius: 4, overflow: "hidden" }}>
-                <motion.div initial={{ width: 0 }} animate={{ width: `${b.pct}%` }} transition={{ delay: i * 0.12, duration: 0.7, ease: "easeOut" }}
-                  style={{ height: "100%", background: b.color, borderRadius: 4 }} />
-              </div>
-            </div>
-          ))}
-        </div>
-        <div style={{ marginTop: "8%", padding: "14px 16px", borderRadius: 10, background: "#f8f5ef", border: "1px solid #ece8e0" }}>
-          <div style={{ fontSize: "clamp(8px,1vw,12px)", fontWeight: 700, color: "#111", marginBottom: 6 }}>Top Visitor Origins</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {["Minnesota", "Wisconsin", "Illinois", "Iowa", "North Dakota", "Canada", "China", "UK"].map(s => (
-              <span key={s} style={{ fontSize: "clamp(7px,0.8vw,9px)", padding: "3px 8px", borderRadius: 3, background: "#fff", border: "1px solid #ddd", color: "#555" }}>{s}</span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SlideWhyMedia() {
-  return (
-    <Slide bg="#0a0a0a">
-      <Tag>Media & Reach</Tag>
-      <H size="lg">Your Brand,<br />Amplified</H>
-      <Sub>MOA's media ecosystem reaches far beyond the mall walls — digital, social, PR, and experiential all working together for partners.</Sub>
-      <CardGrid cols={4}>
-        {[
-          { icon: <Camera size={16} />, value: "2.8M", label: "Social Followers", sub: "Across all platforms", color: "#c9a227" },
-          { icon: <Globe size={16} />, value: "4.2M", label: "Monthly Web Visitors", sub: "mall.mallfamerica.com", color: "#e8630a" },
-          { icon: <Mail size={16} />, value: "1.1M", label: "Email Subscribers", sub: "Targeted, opted-in", color: "#a16207" },
-          { icon: <TrendingUp size={16} />, value: "500M+", label: "Annual Media Impressions", sub: "PR & earned media", color: "#c9a227" },
-        ].map((c, i) => (
-          <motion.div key={c.label} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.1 }}
-            style={{ padding: "clamp(12px,2vw,22px)", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: `1px solid ${c.color}22`, textAlign: "center" }}>
-            <div style={{ color: c.color, marginBottom: "12%", display: "flex", justifyContent: "center" }}>{c.icon}</div>
-            <div style={{ fontSize: "clamp(18px,2.8vw,36px)", fontWeight: 900, color: c.color, marginBottom: "5%" }}>{c.value}</div>
-            <div style={{ fontSize: "clamp(8px,0.95vw,11px)", fontWeight: 700, color: "#fff", marginBottom: "4%" }}>{c.label}</div>
-            <div style={{ fontSize: "clamp(6px,0.75vw,9px)", color: "rgba(255,255,255,0.3)" }}>{c.sub}</div>
-          </motion.div>
-        ))}
-      </CardGrid>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
-        {[
-          { label: "On-site Digital Screens", value: "300+ displays throughout the mall campus" },
-          { label: "Co-Marketing Programs", value: "Email, social, paid media, and PR amplification" },
-        ].map(item => (
-          <div key={item.label} style={{ padding: "12px 16px", borderRadius: 8, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", display: "flex", gap: 12 }}>
-            <div style={{ width: 3, background: "#c9a227", borderRadius: 2, flexShrink: 0 }} />
-            <div>
-              <div style={{ fontSize: "clamp(8px,0.9vw,11px)", fontWeight: 700, color: "#fff", marginBottom: 4 }}>{item.label}</div>
-              <div style={{ fontSize: "clamp(7px,0.8vw,10px)", color: "rgba(255,255,255,0.4)" }}>{item.value}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </Slide>
-  );
-}
-
-function SlideRetailHero({ openModal }) {
-  return (
-    <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden", display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-      <div style={{ position: "absolute", inset: 0 }}>
-        <img src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1600&q=80" alt="" style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.12 }} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right,rgba(0,0,0,0.96) 50%,rgba(0,0,0,0.5) 100%)" }} />
-      </div>
-      <div style={{ position: "relative", zIndex: 10, display: "flex", alignItems: "center", padding: "0 8%" }}>
-        <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7 }}>
-          <Tag>Retail</Tag>
-          <H size="xl">Turn Your<br />Brand Into<br /><em style={{ fontStyle: "italic", color: "#c9a227" }}>An Experience</em></H>
-          <Sub>Join 500+ global brands creating unforgettable retail moments across 5.6 million sq ft of premium floor space.</Sub>
-          <div style={{ display: "flex", gap: 8 }}>
-            <GoldBtn onClick={() => openModal("leasing")}>Explore Leasing <ArrowRight size={12} /></GoldBtn>
-            <GoldBtn onClick={() => openModal("contact")} outline>Talk to Us</GoldBtn>
-          </div>
-        </motion.div>
-      </div>
-      <div style={{ position: "relative", zIndex: 10, display: "flex", alignItems: "center", padding: "0 6% 0 2%" }}>
-        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}
-          style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10 }}>
-          {[
-            { v: "500+", l: "Global Brands", d: "From fast fashion to flagship luxury" },
-            { v: "5.6M", l: "Square Feet", d: "Largest retail space in the United States" },
-            { v: "40M+", l: "Annual Footfall", d: "Premium, high-intent shoppers" },
-            { v: "#1", l: "US Retail Destination", d: "Consistently ranked top destination" },
-          ].map(item => (
-            <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 14, padding: "10px 16px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-              <div style={{ fontSize: "clamp(16px,2.2vw,26px)", fontWeight: 900, color: "#c9a227", minWidth: "max-content" }}>{item.v}</div>
-              <div>
-                <div style={{ fontSize: "clamp(9px,1vw,12px)", fontWeight: 700, color: "#fff" }}>{item.l}</div>
-                <div style={{ fontSize: "clamp(7px,0.8vw,10px)", color: "rgba(255,255,255,0.35)" }}>{item.d}</div>
-              </div>
-            </div>
-          ))}
-        </motion.div>
-      </div>
-    </div>
-  );
-}
-
-function SlideRetailBrands({ openModal }) {
-  const brands = ["NIKE", "APPLE", "LULULEMON", "LOUIS VUITTON", "NORDSTROM", "SEPHORA", "TESLA", "GUCCI", "OMEGA", "BURBERRY", "H&M", "ZARA", "UNIQLO", "COACH", "TIFFANY & CO.", "MICHAEL KORS", "ROLEX", "RALPH LAUREN", "ANTHROPOLOGIE", "FREE PEOPLE", "BANANA REPUBLIC", "GAP", "J.CREW", "BROOKS BROTHERS"];
-  return (
-    <Slide bg="#111">
-      <Tag>Retail Partners</Tag>
-      <H size="md">500+ World-Class Brand Partners</H>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: "clamp(3px,0.6vw,7px)", marginTop: "2%", marginBottom: "3%" }}>
-        {brands.map((b, i) => (
-          <motion.div key={b} initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.025, duration: 0.3 }}
-            whileHover={{ scale: 1.08, background: "rgba(201,162,39,0.1)", borderColor: "rgba(201,162,39,0.3)" }}
-            style={{ aspectRatio: "2/1", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", cursor: "pointer", transition: "all 0.2s" }}>
-            <span style={{ fontSize: "clamp(5px,0.65vw,8px)", fontWeight: 700, letterSpacing: "0.04em", textAlign: "center", color: "rgba(255,255,255,0.55)", padding: "0 4px" }}>{b}</span>
-          </motion.div>
-        ))}
-      </div>
-      <div style={{ display: "flex", justifyContent: "center", gap: 10 }}>
-        <GoldBtn onClick={() => openModal("leasing")}>View Leasing Opportunities</GoldBtn>
-      </div>
-    </Slide>
-  );
-}
-
-function SlideRetailCategories() {
-  const cats = [
-    { name: "Fashion & Apparel", count: "150+ stores", img: "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=400&q=70" },
-    { name: "Luxury & Jewelry", count: "40+ stores", img: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&q=70" },
-    { name: "Tech & Electronics", count: "25+ stores", img: "https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=400&q=70" },
-    { name: "Home & Lifestyle", count: "30+ stores", img: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&q=70" },
-    { name: "Beauty & Wellness", count: "45+ stores", img: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&q=70" },
-    { name: "Sports & Outdoors", count: "20+ stores", img: "https://images.unsplash.com/photo-1517963879433-6ad2b056d712?w=400&q=70" },
-  ];
-  return (
-    <Slide bg="#0e0e0e" style={{ padding: "3% 5%" }}>
-      <Tag>Retail Categories</Tag>
-      <H size="md">A Category for<br />Every Brand</H>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: "clamp(4px,0.8vw,10px)", marginTop: "2%", flex: 1 }}>
-        {cats.map((c, i) => (
-          <motion.div key={c.name} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
-            style={{ borderRadius: 8, overflow: "hidden", position: "relative", cursor: "pointer" }} whileHover={{ scale: 1.03 }}>
-            <img src={c.img} alt={c.name} style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0, transition: "opacity 0.4s" }} onLoad={e => e.target.style.opacity = 0.7} />
-            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(0,0,0,0.85) 0%,transparent 50%)" }} />
-            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "0 10px 10px" }}>
-              <div style={{ fontSize: "clamp(7px,0.9vw,11px)", fontWeight: 700, color: "#fff", marginBottom: 3 }}>{c.name}</div>
-              <div style={{ fontSize: "clamp(6px,0.75vw,9px)", color: "#c9a227", fontWeight: 600 }}>{c.count}</div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    </Slide>
-  );
-}
-
-function SlideRetailLeasing({ openModal }) {
-  const options = [
-    { cat: "Flagship Store", size: "5,000–50,000 sq ft", color: "#c9a227", desc: "Anchor position with maximum visibility. Prime corners, multi-level options, and exclusive wing opportunities." },
-    { cat: "Inline Retail", size: "800–5,000 sq ft", color: "#e8630a", desc: "High-traffic corridor placements. Flexible configurations for all retail formats." },
-    { cat: "Kiosk & Cart", size: "100–500 sq ft", color: "#a16207", desc: "Center-court and mall-corridor positions. Seasonal and permanent options available." },
-    { cat: "Pop-Up & Activation", size: "1 day–6 months", color: "#78350f", desc: "Short-term high-impact spaces. Product launches, drops, and seasonal campaigns." },
-  ];
-  return (
-    <Slide bg="#f8f5ef" style={{ padding: "4% 7%" }}>
-      <Tag color="#c9a227">Leasing Options</Tag>
-      <H dark={false} size="md">Find Your<br />Perfect Space</H>
-      <Sub dark={false}>From flagship flagships to flash pop-ups — we have a space that fits your brand strategy and budget.</Sub>
-      <CardGrid cols={4}>
-        {options.map((o, i) => (
-          <motion.div key={o.cat} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
-            style={{ padding: "clamp(14px,2vw,22px)", borderRadius: 10, background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,0.08)", borderTop: `3px solid ${o.color}` }}>
-            <div style={{ fontSize: "clamp(10px,1.2vw,14px)", fontWeight: 800, color: "#111", marginBottom: 6 }}>{o.cat}</div>
-            <div style={{ fontSize: "clamp(8px,0.9vw,11px)", color: o.color, fontWeight: 600, marginBottom: 10 }}>{o.size}</div>
-            <p style={{ fontSize: "clamp(7px,0.85vw,10px)", color: "#666", lineHeight: 1.65, margin: "0 0 14px" }}>{o.desc}</p>
-            <button onClick={() => openModal("leasing")} style={{ width: "100%", padding: "6px 0", borderRadius: 4, background: o.color, color: "#fff", fontSize: 9, fontWeight: 700, border: "none", cursor: "pointer", letterSpacing: "0.07em", textTransform: "uppercase" }}>
-              Inquire →
-            </button>
-          </motion.div>
-        ))}
-      </CardGrid>
-    </Slide>
-  );
-}
-
-function SlideRetailPopup({ openModal }) {
-  return (
-    <div style={{ width: "100%", height: "100%", background: "#111", display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-      <div style={{ position: "relative", overflow: "hidden" }}>
-        <img src="https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?w=900&q=80" alt="Pop-up" style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.7 }} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right,transparent 60%,#111 100%)" }} />
-        <div style={{ position: "absolute", top: "8%", left: "8%", padding: "8px 14px", borderRadius: 4, background: "#c9a227" }}>
-          <span style={{ fontSize: 9, fontWeight: 700, color: "#000", textTransform: "uppercase", letterSpacing: "0.1em" }}>Pop-Up Spotlight</span>
-        </div>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 8% 0 6%" }}>
-        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7 }}>
-          <Tag>Pop-Up & Activations</Tag>
-          <H size="lg">Test, Launch,<br /><em style={{ fontStyle: "italic", color: "#c9a227" }}>& Activate</em></H>
-          <Sub>Short-term retail doesn't mean short-term impact. Our pop-up spaces put your brand in front of millions — instantly.</Sub>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: "5%" }}>
-            {["Turnkey buildout support", "Built-in 40M+ audience", "Social amplification package", "1-day to 6-month terms", "Launch event support", "Data & analytics reporting"].map(item => (
-              <div key={item} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "clamp(8px,1vw,12px)", color: "rgba(255,255,255,0.65)" }}>
-                <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#c9a227", flexShrink: 0 }} />
-                {item}
-              </div>
-            ))}
-          </div>
-          <GoldBtn onClick={() => openModal("leasing")}>Book a Pop-Up Space</GoldBtn>
-        </motion.div>
-      </div>
-    </div>
-  );
-}
-
-
-function SlideLuxuryHero({ openModal }) {
-  return (
-    <div style={{ width: "100%", height: "100%", display: "grid", gridTemplateColumns: "1fr 1fr", overflow: "hidden" }}>
-      <div style={{ background: "linear-gradient(160deg,#0a0805,#1e1508)", display: "flex", alignItems: "center", padding: "0 8%" }}>
-        <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }}>
-          <Tag color="#c9a227">Luxury Wing</Tag>
-          <H size="xl">Premium<br />Flagship<br /><em style={{ fontStyle: "italic", color: "#c9a227" }}>Spaces</em></H>
-          <Sub>A dedicated luxury corridor designed to attract and retain high-net-worth shoppers. Your flagship deserves this audience.</Sub>
-          <GoldBtn onClick={() => openModal("leasing")} outline>Request Luxury Leasing</GoldBtn>
-        </motion.div>
-      </div>
-      <motion.div initial={{ opacity: 0, scale: 1.05 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1 }}
-        style={{ position: "relative", overflow: "hidden" }}>
-        <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=900&q=80" alt="Luxury" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right,rgba(10,8,5,0.5) 0%,transparent 50%)" }} />
-        <div style={{ position: "absolute", bottom: "8%", right: "8%", padding: "14px 18px", borderRadius: 8, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(14px)", border: "1px solid rgba(201,162,39,0.4)" }}>
-          <div style={{ fontSize: "clamp(16px,2.4vw,30px)", fontWeight: 900, color: "#c9a227", marginBottom: 4 }}>100+</div>
-          <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em" }}>Luxury Tenants</div>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
-
-function SlideLuxuryMetrics({ openModal }) {
-  return (
-    <Slide bg="#f8f5ef" style={{ padding: "4% 7%" }}>
-      <Tag color="#92400e">Luxury by the Numbers</Tag>
-      <H dark={false} size="lg">Premium Demographics,<br />Premium Results</H>
-      <CardGrid cols={3}>
-        {[
-          { v: "70%", l: "Affluent Visitors", d: "Avg HHI $85K+", extra: "Premium purchasing power" },
-          { v: "$500+", l: "Luxury Avg Transaction", d: "Per luxury wing visit", extra: "3x higher than general retail" },
-          { v: "100+", l: "Luxury Brand Tenants", d: "Curated high-end mix", extra: "From accessible to ultra-premium" },
-        ].map((item, i) => (
-          <motion.div key={item.l} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.12 }}
-            style={{ padding: "clamp(18px,3vw,36px)", borderRadius: 12, background: "#fff", boxShadow: "0 4px 30px rgba(0,0,0,0.1)", textAlign: "center" }}>
-            <div style={{ fontSize: "clamp(28px,4.5vw,56px)", fontWeight: 900, color: "#92400e", marginBottom: "5%" }}>{item.v}</div>
-            <div style={{ fontSize: "clamp(9px,1.1vw,13px)", fontWeight: 800, color: "#111", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "3%" }}>{item.l}</div>
-            <div style={{ fontSize: "clamp(7px,0.85vw,10px)", color: "#999", marginBottom: "4%" }}>{item.d}</div>
-            <div style={{ fontSize: "clamp(7px,0.85vw,10px)", color: "#92400e", fontWeight: 600, padding: "4px 10px", borderRadius: 4, background: "#fef3c7", display: "inline-block" }}>{item.extra}</div>
-          </motion.div>
-        ))}
-      </CardGrid>
-      <div style={{ textAlign: "center", marginTop: "4%" }}>
-        <GoldBtn onClick={() => openModal("leasing")}>Request Luxury Leasing Info</GoldBtn>
-      </div>
-    </Slide>
-  );
-}
-
-function SlideLuxuryBrands({ openModal }) {
-  const luxBrands = ["LOUIS VUITTON", "GUCCI", "PRADA", "CHANEL", "HERMES", "TIFFANY & CO.", "ROLEX", "CARTIER", "BURBERRY", "BALENCIAGA", "OMEGA", "COACH", "MICHAEL KORS", "KATE SPADE", "MARC JACOBS", "FENDI"];
-  return (
-    <Slide bg="#0a0805">
-      <Tag color="#c9a227">Luxury Tenants</Tag>
-      <H size="md">Our Luxury<br />Brand Roster</H>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: "clamp(4px,0.7vw,9px)", marginTop: "3%", marginBottom: "4%" }}>
-        {luxBrands.map((b, i) => (
-          <motion.div key={b} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }}
-            style={{ aspectRatio: "2/1", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 6, background: "rgba(201,162,39,0.07)", border: "1px solid rgba(201,162,39,0.18)", cursor: "pointer" }}>
-            <span style={{ fontSize: "clamp(5px,0.65vw,8px)", fontWeight: 700, color: "rgba(201,162,39,0.75)", textAlign: "center", padding: "0 4px", letterSpacing: "0.04em" }}>{b}</span>
-          </motion.div>
-        ))}
-      </div>
-      <div style={{ textAlign: "center" }}>
-        <GoldBtn onClick={() => openModal("leasing")}>Inquire About Luxury Placement</GoldBtn>
-      </div>
-    </Slide>
-  );
-}
-
-function SlideDiningHero() {
-  return (
-    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden" }}>
-      <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1600&q=80" alt="Dining" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(0,0,0,0.88) 45%, rgba(0,0,0,0.3) 100%)" }} />
-      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", padding: "0 8%" }}>
-        <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}>
-          <Tag>Dining & Lifestyle</Tag>
-          <H size="xl">Where Food<br />Becomes<br /><em style={{ fontStyle: "italic", color: "#e8630a" }}>Destination</em></H>
-          <Sub>80+ restaurants spanning global cuisines. From quick service to fine dining — every palate, every occasion.</Sub>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, maxWidth: "80%" }}>
-            {[["80+", "Restaurants"], ["15+", "Cuisines"], ["3.2h", "Avg Dwell"]].map(([v, l]) => (
-              <div key={l} style={{ padding: "10px 14px", borderRadius: 8, background: "rgba(255,255,255,0.08)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.15)", textAlign: "center" }}>
-                <div style={{ fontSize: "clamp(16px,2.2vw,26px)", fontWeight: 900, color: "#e8630a" }}>{v}</div>
-                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: "0.06em", marginTop: 3 }}>{l}</div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      </div>
-    </div>
-  );
-}
-
-function SlideDiningConcepts() {
-  const concepts = [
-    { name: "Fine Dining", desc: "Full-service restaurants with chef-driven menus", img: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=500&q=70", count: "12 options" },
-    { name: "Fast Casual", desc: "Premium quick-service concepts", img: "https://images.unsplash.com/photo-1565299507177-b0ac66763828?w=500&q=70", count: "30+ options" },
-    { name: "Food Court", desc: "All-day high-traffic dining destinations", img: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&q=70", count: "25+ options" },
-    { name: "Specialty & Café", desc: "Unique concepts, bakeries & coffee shops", img: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500&q=70", count: "15+ options" },
-  ];
-  return (
-    <Slide bg="#fff" style={{ padding: "4% 5%" }}>
-      <Tag color="#e8630a">Dining Concepts</Tag>
-      <H dark={false} size="md">Every Dining<br />Experience Covered</H>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginTop: "2%", flex: 1 }}>
-        {concepts.map((c, i) => (
-          <motion.div key={c.name} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
-            style={{ borderRadius: 10, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column" }}>
-            <div style={{ height: "55%", position: "relative", overflow: "hidden" }}>
-              <img src={c.img} alt={c.name} style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0, transition: "opacity 0.4s" }} onLoad={e => e.target.style.opacity = 1} />
-            </div>
-            <div style={{ flex: 1, padding: "14px 14px 16px", background: "#fff" }}>
-              <div style={{ fontSize: "clamp(9px,1.1vw,13px)", fontWeight: 800, color: "#111", marginBottom: 4 }}>{c.name}</div>
-              <div style={{ fontSize: "clamp(7px,0.85vw,10px)", color: "#777", lineHeight: 1.55, marginBottom: 8 }}>{c.desc}</div>
-              <div style={{ fontSize: "clamp(7px,0.8vw,10px)", color: "#e8630a", fontWeight: 700 }}>{c.count}</div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    </Slide>
-  );
-}
-
-function SlideDiningStats() {
-  return (
-    <Slide bg="#1a0a00">
-      <Tag color="#e8630a">Dining Performance</Tag>
-      <H size="md">Dining Drives<br />Dwell Time</H>
-      <Sub>Visitors who dine at MOA stay 3x longer and spend 2.4x more than non-diners. Dining isn't a feature — it's a strategy.</Sub>
-      <CardGrid cols={3}>
-        {[
-          { v: "3x", l: "Higher Dwell Time", d: "Diners vs. non-diners" },
-          { v: "2.4x", l: "Higher Spend", d: "Per visit for dining visitors" },
-          { v: "42%", l: "Return Visits", d: "Driven by F&B experience" },
-        ].map((item, i) => (
-          <motion.div key={item.l} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.12 }}
-            style={{ padding: "clamp(16px,2.5vw,30px)", borderRadius: 10, background: "rgba(232,99,10,0.08)", border: "1px solid rgba(232,99,10,0.25)", textAlign: "center" }}>
-            <div style={{ fontSize: "clamp(26px,4vw,50px)", fontWeight: 900, color: "#e8630a", marginBottom: "5%" }}>{item.v}</div>
-            <div style={{ fontSize: "clamp(9px,1.1vw,13px)", fontWeight: 700, color: "#fff", marginBottom: "3%" }}>{item.l}</div>
-            <div style={{ fontSize: "clamp(7px,0.85vw,10px)", color: "rgba(255,255,255,0.4)" }}>{item.d}</div>
-          </motion.div>
-        ))}
-      </CardGrid>
-      <div style={{ marginTop: "4%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        {[
-          { label: "Peak Dining Hours", value: "11am–2pm & 5pm–8pm daily — guaranteed traffic" },
-          { label: "F&B Partnership Opportunities", value: "Co-branded activations, tastings, and dining events" },
-        ].map(item => (
-          <div key={item.label} style={{ padding: "12px 16px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
-            <div style={{ fontSize: "clamp(8px,0.9vw,11px)", fontWeight: 700, color: "#e8630a", marginBottom: 5 }}>{item.label}</div>
-            <div style={{ fontSize: "clamp(7px,0.85vw,10px)", color: "rgba(255,255,255,0.45)", lineHeight: 1.55 }}>{item.value}</div>
-          </div>
-        ))}
-      </div>
-    </Slide>
-  );
-}
-
-function SlideEntHero({ openModal }) {
-  return (
-    <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <video autoPlay muted loop playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.5 }}>
-        <source src={ENTERTAIN_VIDEO} type="video/mp4" />
-      </video>
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0.2) 50%,rgba(0,0,0,0.85) 100%)" }} />
-      <div style={{ position: "relative", zIndex: 10, textAlign: "center", padding: "0 10%" }}>
-        <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9 }}>
-          <Tag>Entertainment</Tag>
-          <H size="xl">Beyond<br /><em style={{ fontStyle: "italic", color: "#c9a227" }}>Shopping</em></H>
-          <p style={{ fontSize: "clamp(9px,1.4vw,16px)", color: "rgba(255,255,255,0.6)", fontWeight: 300, maxWidth: "50%", margin: "0 auto 5%" }}>
-            8 acres of theme park · Indoor water park · Live concerts · Brand activations · Seasonal spectaculars
-          </p>
-          <div style={{ display: "flex", justifyContent: "center", gap: 10 }}>
-            <GoldBtn onClick={() => openModal("events")}>Explore Venue Capabilities</GoldBtn>
-          </div>
-        </motion.div>
-      </div>
-    </div>
-  );
-}
-
-function SlideEntVenues({ openModal }) {
-  return (
-    <Slide bg="#0d0d0d">
-      <Tag>World-Class Venues</Tag>
-      <H size="md">Entertainment<br />Infrastructure</H>
-      <CardGrid cols={2}>
-        {[
-          { icon: <Zap size={18} />, title: "Nickelodeon Universe", sub: "8-Acre Indoor Theme Park", stat: "5M+ annual visitors", desc: "The largest indoor theme park in North America. 27 rides, 7 roller coasters." },
-          { icon: <Star size={18} />, title: "SEA LIFE Aquarium", sub: "10,000+ Sea Creatures", stat: "Interactive experiences", desc: "Immersive ocean tunnel, touch pools, and educational programs for all ages." },
-          { icon: <Music size={18} />, title: "Performing Arts Center", sub: "Concert-grade Stage & Pit", stat: "3,000 capacity", desc: "Full production infrastructure. World-class acoustics. International touring acts." },
-          { icon: <Building2 size={18} />, title: "Expo & Convention Hall", sub: "200,000 sq ft Flexible Space", stat: "Trade shows & conferences", desc: "Fully configurable. Loading docks, AV infrastructure, catering on-site." },
-        ].map((item, i) => (
-          <motion.div key={item.title} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
-            whileHover={{ background: "rgba(255,255,255,0.07)" }}
-            style={{ padding: "clamp(14px,2vw,22px)", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", transition: "background 0.2s", display: "flex", gap: 14 }}>
-            <div style={{ color: "#c9a227", flexShrink: 0, marginTop: 2 }}>{item.icon}</div>
-            <div>
-              <div style={{ fontSize: "clamp(10px,1.3vw,15px)", fontWeight: 700, color: "#fff", marginBottom: 3 }}>{item.title}</div>
-              <div style={{ fontSize: "clamp(7px,0.85vw,10px)", color: "rgba(255,255,255,0.4)", marginBottom: 5 }}>{item.sub}</div>
-              <div style={{ fontSize: "clamp(7px,0.85vw,10px)", color: "#c9a227", fontWeight: 600, marginBottom: 6 }}>{item.stat}</div>
-              <div style={{ fontSize: "clamp(7px,0.85vw,10px)", color: "rgba(255,255,255,0.45)", lineHeight: 1.55 }}>{item.desc}</div>
-            </div>
-          </motion.div>
-        ))}
-      </CardGrid>
-      <div style={{ textAlign: "center", marginTop: "3%" }}>
-        <GoldBtn onClick={() => openModal("events")} outline>Book a Venue →</GoldBtn>
-      </div>
-    </Slide>
-  );
-}
-
-function SlideEntNick() {
-  return (
-    <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#0a1520,#001a2e)", display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-      <div style={{ position: "relative", overflow: "hidden" }}>
-        <img src="https://images.unsplash.com/photo-1568777036215-a0f9bc9f9f35?w=900&q=80" alt="Rides" style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.65 }} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right,transparent 50%,#001a2e 100%)" }} />
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 8% 0 4%" }}>
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-          <div style={{ display: "inline-flex", padding: "3px 10px", borderRadius: 3, background: "rgba(255,107,0,0.15)", border: "1px solid rgba(255,107,0,0.3)", marginBottom: "3%" }}>
-            <span style={{ fontSize: 8, fontWeight: 700, color: "#ff6b00", letterSpacing: "0.12em", textTransform: "uppercase" }}>Nickelodeon Universe</span>
-          </div>
-          <H size="lg">The Largest<br />Indoor Theme<br /><em style={{ fontStyle: "italic", color: "#c9a227" }}>Park in the US</em></H>
-          <Sub>27 rides. 7 roller coasters. An 8-acre spectacle that makes MOA a must-visit family destination.</Sub>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            {[["27", "Rides & Attractions"], ["7", "Roller Coasters"], ["5M+", "Annual Visitors"], ["8 Acres", "of Indoor Adventure"]].map(([v, l]) => (
-              <div key={l} style={{ padding: "10px 12px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                <div style={{ fontSize: "clamp(14px,2vw,22px)", fontWeight: 900, color: "#c9a227" }}>{v}</div>
-                <div style={{ fontSize: 8, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 3 }}>{l}</div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      </div>
-    </div>
-  );
-}
-
-function SlideEntAquarium() {
-  return (
-    <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#000d1a,#001533)", display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 8%" }}>
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <div style={{ display: "inline-flex", padding: "3px 10px", borderRadius: 3, background: "rgba(0,150,255,0.15)", border: "1px solid rgba(0,150,255,0.3)", marginBottom: "3%" }}>
-            <span style={{ fontSize: 8, fontWeight: 700, color: "#0096ff", letterSpacing: "0.12em", textTransform: "uppercase" }}>SEA LIFE Aquarium</span>
-          </div>
-          <H size="lg">10,000+<br />Sea Creatures<br /><em style={{ fontStyle: "italic", color: "#0096ff" }}>& Counting</em></H>
-          <Sub>An immersive ocean experience that draws families, school groups, and experiential seekers — year-round.</Sub>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {["360° ocean tunnel walk-through", "Interactive touch pools", "Educational programming & school partnerships", "VIP behind-the-scenes experiences"].map(item => (
-              <div key={item} style={{ display: "flex", gap: 8, fontSize: "clamp(8px,1vw,12px)", color: "rgba(255,255,255,0.6)", alignItems: "center" }}>
-                <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#0096ff", flexShrink: 0 }} />
-                {item}
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      </div>
-      <div style={{ position: "relative", overflow: "hidden" }}>
-        <img src="https://images.unsplash.com/photo-1544552866-d3ed42536cfd?w=900&q=80" alt="Aquarium" style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.6 }} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right,#000d1a 0%,transparent 40%)" }} />
-      </div>
-    </div>
-  );
-}
-
-function SlideEventsHero({ openModal }) {
-  return (
-    <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg,#92400e 0%,#b45309 40%,#dc2626 100%)" }} />
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 50% 50%,rgba(255,255,255,0.07) 0%,transparent 65%)" }} />
-      {/* Decorative rings */}
-      {[180, 300, 420].map((size, i) => (
-        <motion.div key={i} animate={{ rotate: i % 2 === 0 ? 360 : -360 }} transition={{ duration: 20 + i * 8, repeat: Infinity, ease: "linear" }}
-          style={{ position: "absolute", width: size, height: size, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.06)", top: "50%", left: "50%", transform: "translate(-50%,-50%)" }} />
-      ))}
-      <div style={{ position: "relative", zIndex: 10, textAlign: "center", padding: "0 10%" }}>
-        <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9 }}>
-          <Tag color="rgba(255,255,255,0.6)">Events</Tag>
-          <H size="xl">Host Your<br /><em style={{ fontStyle: "italic", color: "rgba(255,255,255,0.85)" }}>Next Event</em></H>
-          <p style={{ fontSize: "clamp(9px,1.3vw,16px)", color: "rgba(255,255,255,0.7)", marginBottom: "4%" }}>
-            Product launches · Concerts · Activations · Galas · Trade shows
-          </p>
-          <GoldBtn onClick={() => openModal("events")}>Explore Event Spaces</GoldBtn>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "clamp(8px,2vw,24px)", marginTop: "5%", paddingTop: "4%", borderTop: "1px solid rgba(255,255,255,0.18)" }}>
-            {[["365+", "Events annually"], ["50,000", "Max capacity"], ["24/7", "Production support"]].map(([v, l]) => (
-              <div key={l} style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "clamp(18px,3vw,38px)", fontWeight: 900, color: "#fff", marginBottom: "4%" }}>{v}</div>
-                <div style={{ fontSize: "clamp(7px,0.9vw,10px)", color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em" }}>{l}</div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      </div>
-    </div>
-  );
-}
-
-function SlideEventsSpaces({ openModal }) {
-  const spaces = [
-    { name: "Grand Rotunda", cap: "10,000+", area: "50,000 sq ft", img: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=600&q=70" },
-    { name: "Entertainment Pavilion", cap: "5,000", area: "30,000 sq ft", img: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=600&q=70" },
-    { name: "Brand Activation Zone", cap: "2,000–5,000", area: "10K–25K sq ft", img: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600&q=70" },
-    { name: "Corporate Suite", cap: "500–2,000", area: "5K–15K sq ft", img: "https://images.unsplash.com/photo-1511578314322-379afb476865?w=600&q=70" },
-  ];
-  return (
-    <Slide bg="#0d0d0d" style={{ padding: "3% 5%" }}>
-      <Tag>Event Spaces</Tag>
-      <H size="md">World-Class<br />Venues for Every Event</H>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginTop: "2%", flex: 1 }}>
-        {spaces.map((v, i) => (
-          <motion.div key={v.name} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.09 }}
-            style={{ borderRadius: 10, overflow: "hidden", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", display: "flex", flexDirection: "column" }}>
-            <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-              <img src={v.img} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0, transition: "opacity 0.4s" }} onLoad={e => e.target.style.opacity = 0.8} />
-              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(0,0,0,0.7),transparent)" }} />
-            </div>
-            <div style={{ padding: "12px 14px 14px" }}>
-              <div style={{ fontSize: "clamp(9px,1.1vw,13px)", fontWeight: 700, color: "#fff", marginBottom: 4 }}>{v.name}</div>
-              <div style={{ display: "flex", gap: 8, fontSize: 9, color: "rgba(255,255,255,0.35)", marginBottom: 10 }}>
-                <span>{v.cap} guests</span><span>·</span><span>{v.area}</span>
-              </div>
-              <button onClick={() => openModal("events")} style={{ width: "100%", padding: "5px 0", borderRadius: 3, background: "linear-gradient(135deg,#c9a227,#e8630a)", color: "#fff", fontSize: 9, fontWeight: 700, border: "none", cursor: "pointer", letterSpacing: "0.06em", textTransform: "uppercase" }}>
-                Request Info
+            <div style={{ padding: "16px 20px", borderTop: "1px solid rgba(255,255,255,.06)", display: "flex", flexDirection: "column", gap: 8 }}>
+              <button onClick={() => { setAiOpen(true); setNavOpen(false); }} style={{ padding: "10px 14px", borderRadius: 3, background: "rgba(212,168,67,.1)", border: `1px solid ${GOLD}40`, color: GOLD, fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontFamily: "var(--body)" }}>
+                <Sparkles size={11} /> Ask AI
+              </button>
+              <button onClick={() => { setContactOpen(true); setNavOpen(false); }} style={{ padding: "10px 14px", borderRadius: 3, background: `linear-gradient(135deg,${GOLD},${GOLD2})`, border: "none", color: "#000", fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer", fontFamily: "var(--body)" }}>
+                Get In Touch
               </button>
             </div>
           </motion.div>
-        ))}
-      </div>
-    </Slide>
-  );
-}
+        )}
+      </AnimatePresence>
+      {navOpen && <div onClick={() => setNavOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 140 }} />}
 
-function SlideEventsProduction() {
-  return (
-    <Slide bg="#111">
-      <Tag>Production Capabilities</Tag>
-      <H size="md">Full-Service<br />Event Production</H>
-      <Sub>MOA's in-house events team handles everything — so your brand experience runs flawlessly from concept to closing.</Sub>
-      <CardGrid cols={3}>
-        {[
-          { icon: <Volume2 size={16} />, title: "Audio/Visual", items: ["Concert-grade sound systems", "LED video walls & screens", "Broadcast-ready infrastructure", "Lighting rigs & production"] },
-          { icon: <Layers size={16} />, title: "Buildout & Design", items: ["Custom set construction", "Branded environment design", "Turnkey installation", "Strike & storage services"] },
-          { icon: <Shield size={16} />, title: "Operations", items: ["Dedicated event manager", "Security & crowd control", "Permitting & compliance", "24/7 production support"] },
-        ].map((c, i) => (
-          <motion.div key={c.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
-            style={{ padding: "clamp(14px,2vw,22px)", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-            <div style={{ color: "#c9a227", marginBottom: "8%" }}>{c.icon}</div>
-            <div style={{ fontSize: "clamp(10px,1.2vw,14px)", fontWeight: 700, color: "#fff", marginBottom: "8%" }}>{c.title}</div>
-            {c.items.map(item => (
-              <div key={item} style={{ display: "flex", gap: 7, fontSize: "clamp(7px,0.85vw,10px)", color: "rgba(255,255,255,0.5)", marginBottom: "5%" }}>
-                <span style={{ color: "#c9a227" }}>·</span>{item}
-              </div>
-            ))}
+
+      <AnimatePresence mode="wait">
+        {view === "hub" && (
+          <motion.div key="hub" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: .97 }} transition={{ duration: .45 }}
+            style={{ position: "absolute", left: 0, right: 0, top: TOP_H, bottom: 0, overflowY: "auto" }}>
+            <HubView persona={persona} onSelect={goToSection} openAI={() => setAiOpen(true)} openContact={() => setContactOpen(true)} isMobile={isMobile} isTablet={isTablet} />
           </motion.div>
-        ))}
-      </CardGrid>
-    </Slide>
-  );
-}
+        )}
+        {view === "section" && (
+          <motion.div key="section" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .35 }}
+            style={{ position: "absolute", left: 0, right: 0, top: TOP_H, bottom: BOTTOM_H, overflowY: isDesktop ? "hidden" : "auto" }}>
+            <AnimatePresence custom={dir} mode="wait">
+              <SlideWrapper key={cur.id} id={cur.id} dir={dir} animKey={animKey}
+                openAI={() => setAiOpen(true)} openContact={() => setContactOpen(true)}
+                goTo={goTo} idx={idx} persona={persona} isMobile={isMobile} isTablet={isTablet} />
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-function SlideEventsPast({ openModal }) {
-  return (
-    <Slide bg="#f8f5ef" style={{ padding: "4% 7%" }}>
-      <Tag color="#c9a227">Event History</Tag>
-      <H dark={false} size="md">Trusted by the<br />World's Biggest Brands</H>
-      <Sub dark={false}>From intimate brand activations to 50,000-person spectaculars — MOA has hosted them all.</Sub>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginTop: "3%", marginBottom: "4%" }}>
-        {[
-          { brand: "Nike", event: "Air Max Day Activation", year: "2024", attendees: "12,000+" },
-          { brand: "Samsung", event: "Galaxy Launch Event", year: "2024", attendees: "8,500+" },
-          { brand: "Disney", event: "Wish Premiere Experience", year: "2023", attendees: "22,000+" },
-          { brand: "Taylor Swift", event: "Eras Tour Pop-Up", year: "2023", attendees: "40,000+" },
-          { brand: "NFL", event: "Super Bowl Week", year: "2022", attendees: "50,000+" },
-          { brand: "Porsche", event: "Taycan World Launch", year: "2022", attendees: "6,000+" },
-        ].map((e, i) => (
-          <motion.div key={e.brand + e.year} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.08 }}
-            style={{ padding: "14px 16px", borderRadius: 10, background: "#fff", boxShadow: "0 4px 16px rgba(0,0,0,0.08)", display: "flex", flexDirection: "column", gap: 4 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div style={{ fontSize: "clamp(10px,1.2vw,14px)", fontWeight: 800, color: "#111" }}>{e.brand}</div>
-              <div style={{ fontSize: 8, color: "#999", fontWeight: 600 }}>{e.year}</div>
+
+      {view === "section" && (
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: BOTTOM_H, background: "rgba(5,4,3,0.95)", backdropFilter: "blur(24px)", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px", zIndex: 100 }}>
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "rgba(255,255,255,.04)" }}>
+            <motion.div animate={{ width: `${sectionProgress}%` }} transition={{ duration: .4, ease: "easeOut" }}
+              style={{ height: "100%", background: `linear-gradient(90deg,${curSection?.color || GOLD},${GOLD2})` }} />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <button data-mag onClick={() => setView("hub")} style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 8px", background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 3, color: "rgba(255,255,255,.4)", fontSize: 8, cursor: "pointer", fontFamily: "var(--body)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+              <ChevronLeft size={9} /> Hub
+            </button>
+            <NavBtn onClick={() => goTo(idx - 1)} disabled={idx === 0}><ChevronLeft size={13} /></NavBtn>
+            <NavBtn onClick={() => goTo(idx + 1)} disabled={idx === SLIDES.length - 1}><ChevronRight size={13} /></NavBtn>
+            {!isMobile && (
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,.22)", fontFamily: "var(--mono)", letterSpacing: "0.1em" }}>
+                {String(sectionPos + 1).padStart(2, "0")} / {String(sectionSlides.length).padStart(2, "0")}
+              </span>
+            )}
+            <div style={{ display: "flex", gap: 3, marginLeft: 4 }}>
+              {sectionSlides.map(s => {
+                const si = SLIDES.indexOf(s);
+                return <button key={s.id} data-mag onClick={() => goTo(si)} style={{ width: si === idx ? 16 : 5, height: 5, borderRadius: 3, background: si === idx ? curSection?.color || GOLD : "rgba(255,255,255,.15)", border: "none", cursor: "pointer", transition: "all .25s" }} />;
+              })}
             </div>
-            <div style={{ fontSize: "clamp(8px,0.9vw,11px)", color: "#555" }}>{e.event}</div>
-            <div style={{ fontSize: "clamp(8px,0.9vw,11px)", color: "#c9a227", fontWeight: 700, marginTop: 4 }}>{e.attendees} attendees</div>
-          </motion.div>
-        ))}
-      </div>
-      <div style={{ textAlign: "center" }}>
-        <GoldBtn onClick={() => openModal("events")}>Plan Your Event</GoldBtn>
-      </div>
-    </Slide>
+          </div>
+          {!isMobile && (
+            <span style={{ fontSize: 9, color: "rgba(255,255,255,.3)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600, position: "absolute", left: "50%", transform: "translateX(-50%)" }}>
+              {curSection?.label}
+            </span>
+          )}
+          <div style={{ display: "flex", gap: 6 }}>
+            <button data-mag onClick={() => setAiOpen(true)} style={{ padding: "5px 10px", borderRadius: 3, background: "rgba(212,168,67,.1)", border: `1px solid ${GOLD}40`, color: GOLD, fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+              <Sparkles size={10} /> {!isMobile && "Ask "}AI
+            </button>
+            <button data-mag onClick={() => setContactOpen(true)} style={{ padding: "5px 12px", borderRadius: 3, background: `linear-gradient(135deg,${GOLD},${GOLD2})`, border: "none", color: "#000", fontSize: 9, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer" }}>
+              {isMobile ? "Contact" : "Get In Touch"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <AnimatePresence>{aiOpen && <AIPanel onClose={() => setAiOpen(false)} persona={persona} isMobile={isMobile} />}</AnimatePresence>
+      <AnimatePresence>{contactOpen && <ContactModal onClose={() => setContactOpen(false)} persona={persona} />}</AnimatePresence>
+    </div>
   );
 }
 
 
-function SlideSponsorIntro({ openModal }) {
+const HUB_TILES = [
+  { id: "why", label: "Why MOA", sub: "Scale · Audience · Reach", stat: "40M+", statLabel: "Annual Visitors", color: "#C9915A", img: IMG.hub_why, icon: <BarChart2 size={16} /> },
+  { id: "retail", label: "Retail", sub: "Flagship · Inline · Pop-Up", stat: "500+", statLabel: "Brand Partners", color: "#B8875C", img: IMG.hub_ret, icon: <ShoppingBag size={16} /> },
+  { id: "entertainment", label: "Entertainment", sub: "Theme Park · Aquarium · Concerts", stat: "5M+", statLabel: "Visits/yr", color: "#5A7ABD", img: IMG.hub_ent, icon: <Play size={16} /> },
+  { id: "sponsorship", label: "Sponsorship", sub: "Title · Premier · Associate", stat: "$5M+", statLabel: "Top Tier Value", color: "#4A9A7A", img: IMG.hub_spo, icon: <Award size={16} /> },
+  { id: "moment", label: "★ The Moment", sub: "Zone Map · ROI Calculator", stat: "3.2×", statLabel: "Avg Partner ROI", color: GOLD, img: IMG.hub_mom, icon: <Star size={16} /> },
+  { id: "contact", label: "Let's Partner", sub: "Start the conversation", stat: "24h", statLabel: "Response Time", color: "#8B9EA8", img: IMG.hub_con, icon: <Send size={16} /> },
+];
+
+function HubView({ persona, onSelect, openAI, openContact, isMobile, isTablet }) {
+  const [hovered, setHovered] = useState(null);
+  const cols = isMobile ? "repeat(2,1fr)" : isTablet ? "repeat(2,1fr)" : "repeat(3,1fr)";
+
   return (
-    <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 8%" }}>
-        <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}>
-          <Tag>Partnerships</Tag>
-          <H size="xl">Partner with<br />40 Million<br /><em style={{ fontStyle: "italic", color: "#c9a227" }}>People</em></H>
-          <Sub>MOA's sponsorship platform puts your brand at the center of America's greatest retail and entertainment destination.</Sub>
-          <GoldBtn onClick={() => openModal("sponsorship")}>View Sponsorship Tiers <ArrowRight size={12} /></GoldBtn>
+    <div style={{ position: "relative", minHeight: "100%", background: DARK, paddingBottom: 16 }}>
+      <div style={{ position: "fixed", inset: 0, zIndex: 0, background: "radial-gradient(ellipse at 20% 50%,rgba(212,168,67,.06) 0%,transparent 50%),radial-gradient(ellipse at 80% 50%,rgba(74,154,122,.04) 0%,transparent 50%)", pointerEvents: "none" }} />
+      <div style={{ position: "fixed", inset: 0, opacity: .025, zIndex: 0, backgroundImage: `linear-gradient(${GOLD} 1px,transparent 1px),linear-gradient(90deg,${GOLD} 1px,transparent 1px)`, backgroundSize: "60px 60px", pointerEvents: "none" }} />
+
+
+      <div style={{ position: "relative", zIndex: 2, padding: `16px 5% ${isMobile ? "12px" : "14px"}`, display: "flex", alignItems: isMobile ? "flex-start" : "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <div style={{ width: 24, height: 1.5, background: `linear-gradient(to right,${GOLD},transparent)` }} />
+            <span style={{ fontSize: "clamp(7px,1.5vw,8px)", color: GOLD, letterSpacing: "0.22em", textTransform: "uppercase", fontWeight: 700 }}>
+              Partnership Deck · {persona.brand}
+            </span>
+          </div>
+          <h1 style={{ fontFamily: "var(--display)", fontSize: "clamp(22px,3.5vw,44px)", color: "#fff", textTransform: "uppercase", lineHeight: .9 }}>
+            Choose Your <span className="shimmer-gold">Journey</span>
+          </h1>
         </motion.div>
+        {!isMobile && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .4 }} style={{ display: "flex", gap: 8 }}>
+            <button data-mag onClick={openAI} style={{ padding: "7px 14px", borderRadius: 3, background: "rgba(212,168,67,.1)", border: `1px solid ${GOLD}40`, color: GOLD, fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              <Sparkles size={11} /> Ask AI
+            </button>
+            <button data-mag onClick={openContact} style={{ padding: "7px 16px", borderRadius: 3, background: `linear-gradient(135deg,${GOLD},${GOLD2})`, border: "none", color: "#000", fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}>
+              Get In Touch
+            </button>
+          </motion.div>
+        )}
       </div>
-      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 8% 0 4%", gap: 10 }}>
-        {[
-          { label: "Brand Visibility", value: "300+ digital screens + experiential touchpoints across the campus" },
-          { label: "Category Exclusivity", value: "Own your category — no competing brands in your space" },
-          { label: "Co-Marketing", value: "Access to 2.8M social followers, 1.1M email subscribers, and earned PR" },
-          { label: "Data & Insights", value: "Post-activation reports with reach, dwell, and conversion metrics" },
-        ].map((item, i) => (
-          <motion.div key={item.label} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
-            style={{ padding: "12px 16px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", display: "flex", gap: 12 }}>
-            <div style={{ width: 2, background: "#c9a227", borderRadius: 2, flexShrink: 0 }} />
+
+
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .2 }}
+        onClick={() => onSelect("home")} data-mag
+        style={{ position: "relative", zIndex: 2, margin: `0 5% ${isMobile ? "6px" : "3px"}`, height: isMobile ? 56 : 68, overflow: "hidden", borderRadius: 4, cursor: "pointer", border: `1px solid ${GOLD}30`, background: "linear-gradient(135deg,#1a1005,#0a0806)" }}>
+        <video autoPlay muted loop playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: .28 }}>
+          <source src={HERO_VID} type="video/mp4" />
+        </video>
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right,rgba(5,4,3,.9) 0%,rgba(5,4,3,.2) 100%)" }} />
+        <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: `0 ${isMobile ? "14px" : "24px"}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 14 }}>
+            <MOAStar size={isMobile ? 20 : 26} />
             <div>
-              <div style={{ fontSize: "clamp(9px,1vw,12px)", fontWeight: 700, color: "#fff", marginBottom: 4 }}>{item.label}</div>
-              <div style={{ fontSize: "clamp(7px,0.85vw,10px)", color: "rgba(255,255,255,0.4)", lineHeight: 1.55 }}>{item.value}</div>
+              <div style={{ fontSize: 7, color: GOLD, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700, marginBottom: 2 }}>Start Here</div>
+              <div style={{ fontFamily: "var(--display)", fontSize: isMobile ? 14 : 20, color: "#fff", lineHeight: 1, textTransform: "uppercase" }}>
+                {isMobile ? "More Than A Mall" : "More Than A Mall — The Full Story"}
+              </div>
+            </div>
+          </div>
+          {!isMobile && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {[["#1", "US Destination"], ["40M+", "Visitors"], ["5.6M sqft", "Space"]].map(([v, l]) => (
+                <div key={l} style={{ textAlign: "center", padding: "5px 12px", borderLeft: `1px solid ${GOLD}30` }}>
+                  <div style={{ fontFamily: "var(--display)", fontSize: 16, color: GOLD, lineHeight: 1 }}>{v}</div>
+                  <div style={{ fontSize: 7, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{l}</div>
+                </div>
+              ))}
+              <ArrowRight size={14} style={{ color: GOLD, marginLeft: 6 }} />
+            </div>
+          )}
+          {isMobile && <ArrowRight size={14} style={{ color: GOLD }} />}
+        </div>
+      </motion.div>
+
+      <div style={{ position: "relative", zIndex: 2, display: "grid", gridTemplateColumns: cols, gap: 3, padding: "0 5% 8px" }}>
+        {HUB_TILES.map((tile, i) => (
+          <motion.div key={tile.id}
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: .08 + i * .06, duration: .5, ease: [.16, 1, .3, 1] }}
+            onMouseEnter={() => setHovered(tile.id)} onMouseLeave={() => setHovered(null)}
+            onClick={() => onSelect(tile.id)} data-mag
+            style={{ position: "relative", overflow: "hidden", cursor: "pointer", borderRadius: 4, border: `1px solid ${hovered === tile.id ? tile.color + "60" : "rgba(255,255,255,.06)"}`, transition: "border-color .3s", minHeight: isMobile ? 140 : isTablet ? 160 : 0, aspectRatio: isMobile ? "auto" : "auto" }}>
+            <img src={tile.img} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "saturate(.5) contrast(1.05) brightness(.72)", transform: hovered === tile.id ? "scale(1.06)" : "scale(1)", transition: "transform .7s cubic-bezier(.16,1,.3,1)" }} />
+            <div style={{ position: "absolute", inset: 0, background: hovered === tile.id ? `linear-gradient(to top,rgba(5,4,3,.97) 0%,rgba(5,4,3,.4) 60%,${tile.color}18 100%)` : "linear-gradient(to top,rgba(5,4,3,.94) 0%,rgba(5,4,3,.58) 60%,rgba(5,4,3,.18) 100%)", transition: "background .4s" }} />
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: tile.color, opacity: hovered === tile.id ? 1 : .3, transition: "opacity .3s" }} />
+            <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: isMobile ? "12px 12px" : "14px 16px" }}>
+              <div style={{ color: hovered === tile.id ? tile.color : "rgba(255,255,255,.3)", transition: "color .3s" }}>{tile.icon}</div>
+              <div>
+                <div style={{ fontFamily: "var(--display)", fontSize: `clamp(18px,${isMobile ? "5" : "2.6"}vw,34px)`, color: tile.color, lineHeight: 1, marginBottom: 2, filter: hovered === tile.id ? `drop-shadow(0 0 10px ${tile.color}60)` : "none", transition: "filter .3s" }}>{tile.stat}</div>
+                <div style={{ fontSize: "clamp(6px,1.2vw,8px)", color: "rgba(255,255,255,.28)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>{tile.statLabel}</div>
+                <h3 style={{ fontFamily: "var(--display)", fontSize: `clamp(13px,${isMobile ? "3.5" : "1.9"}vw,22px)`, color: "#fff", textTransform: "uppercase", lineHeight: 1, marginBottom: 3 }}>{tile.label}</h3>
+                <p style={{ fontSize: "clamp(7px,1.2vw,9px)", color: "rgba(255,255,255,.28)", lineHeight: 1.4 }}>{tile.sub}</p>
+              </div>
             </div>
           </motion.div>
         ))}
@@ -1371,308 +581,819 @@ function SlideSponsorIntro({ openModal }) {
   );
 }
 
-function SlideSponsorTiers({ openModal }) {
-  const tiers = [
-    { tier: "Title Partner", price: "$5M+/yr", color: "#c9a227", perks: ["Naming rights on major venue", "All activation zones", "Brand ambassador program", "Exclusive category rights", "Media value $15M+", "VIP hospitality suite", "First-right-of-refusal"] },
-    { tier: "Premier Partner", price: "$1M–$5M/yr", color: "#9ca3af", perks: ["Category exclusivity", "Digital + physical branding", "10+ activation days", "Co-branded campaigns", "Event headline opps", "Email campaigns (3/yr)"] },
-    { tier: "Associate Partner", price: "$250K–$1M/yr", color: "#e8630a", perks: ["Branded zones", "5 activation days/yr", "Social media features", "Email access (1/yr)", "Seasonal slots", "Data reporting"] },
+
+function TopNav({ sections, slides, idx, activeSection, goToSection, goToSlide, persona, view, onHubClick, navOpen, setNavOpen, isMobile, isTablet }) {
+  const [hover, setHover] = useState(null);
+  const curSection = sections.find(s => s.id === activeSection);
+  return (
+    <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: isMobile ? 48 : 52, zIndex: 200, background: "rgba(5,4,3,0.97)", backdropFilter: "blur(24px)", borderBottom: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center" }}>
+      <button data-mag onClick={onHubClick} style={{ width: isMobile ? 44 : 54, height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", borderRight: "1px solid rgba(255,255,255,.07)", cursor: "pointer", flexShrink: 0 }}>
+        <MOAStar size={isMobile ? 22 : 26} />
+      </button>
+      <div style={{ padding: `0 ${isMobile ? "10px" : "14px"}`, borderRight: "1px solid rgba(255,255,255,.07)", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", flexShrink: 0 }}>
+        <div style={{ fontSize: 7, color: "rgba(255,255,255,.25)", letterSpacing: "0.1em", textTransform: "uppercase" }}>Prepared for</div>
+        <div style={{ fontSize: isMobile ? 10 : 12, fontWeight: 700, color: GOLD, letterSpacing: "0.03em", maxWidth: isMobile ? 80 : 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{persona.brand}</div>
+      </div>
+
+      {!isMobile && !isTablet && (
+        <>
+          <button data-mag onClick={onHubClick} style={{ height: "100%", padding: "0 12px", background: view === "hub" ? `${GOLD}12` : "none", border: "none", borderBottom: `2px solid ${view === "hub" ? GOLD : "transparent"}`, color: view === "hub" ? GOLD : "rgba(255,255,255,.35)", fontSize: 9, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", cursor: "pointer", transition: "all .2s", flexShrink: 0 }}>
+            ⊞ All
+          </button>
+          <div style={{ display: "flex", height: "100%", flex: 1, overflow: "hidden" }}>
+            {sections.filter(s => s.id !== "home").map(sec => {
+              const isActive = activeSection === sec.id && view === "section";
+              const secSlides = slides.filter(s => s.section === sec.id);
+              return (
+                <div key={sec.id} style={{ position: "relative" }} onMouseEnter={() => setHover(sec.id)} onMouseLeave={() => setHover(null)}>
+                  <button data-mag onClick={() => goToSection(sec.id)} style={{ height: 52, padding: "0 11px", background: "none", border: "none", borderBottom: `2px solid ${isActive ? sec.color : "transparent"}`, color: isActive ? "#fff" : "rgba(255,255,255,.35)", fontSize: 9, fontWeight: isActive ? 700 : 500, letterSpacing: "0.07em", textTransform: "uppercase", cursor: "pointer", transition: "all .2s", whiteSpace: "nowrap" }}>
+                    {sec.label}
+                  </button>
+                  <AnimatePresence>
+                    {hover === sec.id && secSlides.length > 1 && (
+                      <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                        style={{ position: "absolute", top: "100%", left: 0, background: "rgba(8,6,4,.98)", backdropFilter: "blur(20px)", border: `1px solid ${sec.color}30`, borderRadius: "0 0 4px 4px", minWidth: 140, zIndex: 300, overflow: "hidden" }}>
+                        {secSlides.map(sl => {
+                          const si = slides.findIndex(s => s.id === sl.id);
+                          return (
+                            <button key={sl.id} data-mag onClick={() => goToSlide(si)} style={{ width: "100%", padding: "9px 14px", background: "none", border: "none", borderLeft: `2px solid ${sec.color}50`, textAlign: "left", color: "rgba(255,255,255,.5)", fontSize: 10, cursor: "pointer", transition: "all .15s", letterSpacing: "0.04em", display: "block" }}
+                              onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = `${sec.color}10`; }}
+                              onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,.5)"; e.currentTarget.style.background = "none"; }}>
+                              {sl.label}
+                            </button>
+                          );
+                        })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+
+      {isTablet && (
+        <button data-mag onClick={onHubClick} style={{ height: "100%", padding: "0 12px", background: view === "hub" ? `${GOLD}12` : "none", border: "none", borderBottom: `2px solid ${view === "hub" ? GOLD : "transparent"}`, color: view === "hub" ? GOLD : "rgba(255,255,255,.35)", fontSize: 9, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", cursor: "pointer", transition: "all .2s" }}>
+          ⊞ All Sections
+        </button>
+      )}
+
+      <div style={{ flex: 1 }} />
+
+
+      <div style={{ padding: "0 10px", borderLeft: "1px solid rgba(255,255,255,.07)", flexShrink: 0, height: "100%", display: "flex", alignItems: "center", gap: 8 }}>
+        {!isMobile && (
+          <div style={{ padding: "3px 8px", borderRadius: 2, background: `${curSection?.color || GOLD}15`, border: `1px solid ${curSection?.color || GOLD}40`, fontSize: 7, color: curSection?.color || GOLD, letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700, maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {persona.category}
+          </div>
+        )}
+        {(isMobile || isTablet) && (
+          <button onClick={() => setNavOpen(!navOpen)} style={{ width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", background: navOpen ? `${GOLD}18` : "rgba(255,255,255,.05)", border: `1px solid ${navOpen ? GOLD + "50" : "rgba(255,255,255,.1)"}`, borderRadius: 3, color: navOpen ? GOLD : "rgba(255,255,255,.5)", cursor: "pointer" }}>
+            {navOpen ? <X size={15} /> : <Menu size={15} />}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const V = {
+  enter: d => ({ opacity: 0, x: d > 0 ? 32 : -32, scale: .99 }),
+  center: { opacity: 1, x: 0, scale: 1, transition: { duration: .5, ease: [.16, 1, .3, 1] } },
+  exit: d => ({ opacity: 0, x: d > 0 ? -32 : 32, scale: .99, transition: { duration: .3, ease: [.16, 1, .3, 1] } }),
+};
+
+function SlideWrapper({ id, dir, animKey, openAI, openContact, goTo, idx, persona, isMobile, isTablet }) {
+  const p = { openAI, openContact, goTo, idx, animKey, persona, isMobile, isTablet };
+  const map = {
+    "hero": <SlideHero {...p} />, "scale": <SlideScale {...p} />, "audience": <SlideAudience {...p} />,
+    "retail": <SlideRetail {...p} />, "luxury": <SlideLuxury {...p} />, "dining": <SlideDining {...p} />,
+    "entertain": <SlideEntertain {...p} />, "events": <SlideEvents {...p} />, "sponsor": <SlideSponsor {...p} />,
+    "moment-map": <SlideMomentMap {...p} />, "moment-roi": <SlideMomentROI {...p} />, "moment-why": <SlideMomentWhy {...p} />,
+    "contact": <SlideContact {...p} />,
+  };
+  return (
+    <motion.div key={id} custom={dir} variants={V} initial="enter" animate="center" exit="exit"
+      style={{ position: "absolute", inset: 0 }}>
+      {map[id]}
+    </motion.div>
+  );
+}
+
+
+
+function SlideHero({ goTo, openAI, animKey, persona, isMobile }) {
+  const [err, setErr] = useState(false);
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden" }}>
+      {!err ? <video autoPlay muted loop playsInline onError={() => setErr(true)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}><source src={HERO_VID} type="video/mp4" /></video>
+        : <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 35% 55%,#1e1208,#050403 70%)" }} />}
+      <div style={{ position: "absolute", inset: 0, background: isMobile ? "rgba(5,4,3,.8)" : "linear-gradient(to right,rgba(5,4,3,.93) 0%,rgba(5,4,3,.5) 55%,rgba(5,4,3,.15) 100%)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(5,4,3,.88) 0%,transparent 45%)" }} />
+      <div style={{ position: "absolute", inset: 0, opacity: .025, backgroundImage: `linear-gradient(${GOLD} 1px,transparent 1px),linear-gradient(90deg,${GOLD} 1px,transparent 1px)`, backgroundSize: "90px 90px" }} />
+
+      <motion.div key={animKey + "pb"} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .8 }}
+        style={{ position: "absolute", top: 0, right: 0, padding: "8px 16px", borderBottom: "1px solid rgba(255,255,255,.06)", borderLeft: "1px solid rgba(255,255,255,.06)", background: "rgba(5,4,3,.7)", backdropFilter: "blur(12px)" }}>
+        <span style={{ fontSize: 8, color: "rgba(255,255,255,.3)", letterSpacing: "0.12em" }}>Prepared for </span>
+        <span style={{ fontSize: 8, color: GOLD, fontWeight: 700, letterSpacing: "0.08em" }}>{persona.brand}</span>
+      </motion.div>
+
+      <div style={{ position: "relative", zIndex: 10, height: "100%", display: "flex", flexDirection: "column", justifyContent: isMobile ? "flex-end" : "center", padding: isMobile ? "0 6% 8%" : "0 6% 0 7%" }}>
+        <motion.div key={animKey + "a"} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .1 }}
+          style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: isMobile ? 14 : 22 }}>
+          <div style={{ width: 36, height: 1.5, background: `linear-gradient(to right,${GOLD},transparent)` }} />
+          <span style={{ fontSize: 8, color: GOLD, letterSpacing: "0.22em", textTransform: "uppercase", fontWeight: 700 }}>Official Brand Partnership · 2025</span>
+        </motion.div>
+        <motion.h1 key={animKey + "b"} initial={{ opacity: 0, y: 44 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .18, duration: .85, ease: [.16, 1, .3, 1] }}
+          style={{ fontFamily: "var(--display)", fontSize: "clamp(52px,12vw,148px)", lineHeight: .88, color: "#fff", textTransform: "uppercase", marginBottom: 12 }}>
+          More<br />Than<br /><span className="shimmer-gold">A Mall.</span>
+        </motion.h1>
+        <motion.p key={animKey + "c"} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .5 }}
+          style={{ fontSize: "clamp(12px,1.6vw,17px)", color: "rgba(255,255,255,.42)", fontWeight: 300, maxWidth: 460, lineHeight: 1.7, marginBottom: 24 }}>
+          40 million visitors. 500+ world-class brands. The most powerful retail platform in North America — and now it's {persona.brand}'s stage.
+        </motion.p>
+        <motion.div key={animKey + "d"} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .72 }}
+          style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <GoldButton large onClick={() => goTo(SLIDES.findIndex(s => s.section === "why"))}>
+            See Opportunity <ArrowRight size={14} />
+          </GoldButton>
+          <button data-mag onClick={openAI} style={{ padding: "11px 16px", borderRadius: 3, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.14)", color: "#fff", fontSize: 10, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", cursor: "pointer", display: "flex", alignItems: "center", gap: 7, backdropFilter: "blur(10px)" }}>
+            <Sparkles size={12} style={{ color: GOLD }} /> Ask AI
+          </button>
+        </motion.div>
+      </div>
+
+      {!isMobile && (
+        <motion.div key={animKey + "e"} initial={{ opacity: 0, x: 32 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .55, duration: .8 }}
+          style={{ position: "absolute", right: 40, bottom: "8%", display: "flex", flexDirection: "column", gap: 1 }}>
+          {[["40M+", "Annual Visitors"], ["$200", "Avg Per-Visit Spend"], ["3.2h", "Avg Dwell Time"], ["#1", "US Destination"]].map(([v, l]) => (
+            <div key={l} style={{ padding: "11px 16px", background: "rgba(5,4,3,.72)", backdropFilter: "blur(20px)", borderLeft: `2px solid ${GOLD}`, borderBottom: "1px solid rgba(255,255,255,.04)" }}>
+              <div style={{ fontFamily: "var(--display)", fontSize: "clamp(20px,2.8vw,38px)", color: GOLD, lineHeight: 1 }}>{v}</div>
+              <div style={{ fontSize: 8, color: "rgba(255,255,255,.38)", letterSpacing: "0.1em", textTransform: "uppercase", marginTop: 3 }}>{l}</div>
+            </div>
+          ))}
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+function SlideScale({ animKey, isMobile }) {
+  const stats = [
+    { v: 40, suffix: "M+", label: "Annual Visitors", sub: "More than most US cities", dark: true },
+    { v: 5.6, suffix: "M sqft", label: "Total Space", sub: "Largest retail in the US", decimals: 1 },
+    { v: 4.2, prefix: "$", suffix: "B", label: "Economic Impact", sub: "Statewide annually", decimals: 1 },
+    { v: 500, suffix: "+", label: "Brand Partners", sub: "World-class global mix" },
   ];
   return (
-    <Slide bg="#0a0a0a">
-      <Tag>Sponsorship Tiers</Tag>
-      <H size="md">Investment Levels<br />& Benefits</H>
-      <CardGrid cols={3}>
-        {tiers.map((t, i) => (
-          <motion.div key={t.tier} initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.12 }}
-            style={{ padding: "clamp(14px,2vw,22px)", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: `1px solid ${t.color}40`, display: "flex", flexDirection: "column" }}>
-            <div style={{ fontSize: "clamp(11px,1.4vw,16px)", fontWeight: 800, color: t.color, marginBottom: "2%" }}>{t.tier}</div>
-            <div style={{ fontSize: "clamp(8px,0.9vw,11px)", color: "rgba(255,255,255,0.3)", marginBottom: "6%" }}>{t.price}</div>
-            <div style={{ flex: 1 }}>
-              {t.perks.map(p => (
-                <div key={p} style={{ display: "flex", gap: 6, fontSize: "clamp(7px,0.85vw,10px)", color: "rgba(255,255,255,0.55)", marginBottom: "4%" }}>
-                  <span style={{ color: t.color, flexShrink: 0 }}>·</span>{p}
-                </div>
-              ))}
+    <div style={{ position: "relative", width: "100%", height: "100%", background: "#fff", overflow: isMobile ? "auto" : "hidden", display: "flex", flexDirection: "column" }}>
+      <video autoPlay muted loop playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: .06, filter: "grayscale(1)", zIndex: 0 }}>
+        <source src={HERO_VID} type="video/mp4" />
+      </video>
+      <div style={{ flex: isMobile ? "0 0 auto" : "0 0 36%", position: "relative", zIndex: 1, overflow: "hidden", background: "linear-gradient(135deg,#0a0806 0%,#141009 100%)", padding: isMobile ? "40px 7% 24px" : undefined, minHeight: isMobile ? 160 : undefined }}>
+        <img src={IMG.story} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: .16 }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom,transparent 30%,#fff 100%)" }} />
+        <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: isMobile ? 0 : "0 7% 24px" }}>
+          <motion.div key={animKey} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              <div style={{ width: 36, height: 2, background: GOLD2 }} />
+              <span style={{ fontSize: 9, color: GOLD2, letterSpacing: "0.25em", textTransform: "uppercase", fontWeight: 700 }}>Why MOA</span>
             </div>
-            <button onClick={() => openModal("sponsorship")} style={{ width: "100%", marginTop: "8%", padding: "7px 0", borderRadius: 4, background: t.color, color: "#000", fontSize: 9, fontWeight: 700, border: "none", cursor: "pointer", letterSpacing: "0.06em", textTransform: "uppercase" }}>
-              Get Proposal
-            </button>
+            <h2 style={{ fontFamily: "var(--display)", fontSize: "clamp(28px,5vw,68px)", color: "#fff", lineHeight: .9, textTransform: "uppercase" }}>The Numbers Don't Lie</h2>
           </motion.div>
-        ))}
-      </CardGrid>
-    </Slide>
-  );
-}
-
-function SlideSponsorDigital() {
-  return (
-    <Slide bg="#0d0d0d">
-      <Tag>Digital Sponsorship</Tag>
-      <H size="md">Own the<br />Digital Experience</H>
-      <Sub>300+ screens, a 40M-person captive audience, and digital programs built for measurable impact.</Sub>
-      <CardGrid cols={2}>
-        {[
-          { icon: <BarChart2 size={16} />, title: "Digital Signage Network", items: ["300+ high-res displays throughout MOA", "Targeted by zone, time, and audience", "Dynamic content & real-time updates", "Full creative services available"] },
-          { icon: <Globe size={16} />, title: "Online & Social", items: ["Sponsored content on MOA social (2.8M)", "Featured placement on mall.com (4.2M/mo)", "Co-branded email campaigns (1.1M list)", "Influencer partnership programs"] },
-          { icon: <Target size={16} />, title: "App & Mobile", items: ["Featured placement in MOA app", "Push notification sponsorships", "Digital offers & loyalty integration", "Geo-targeted activation triggers"] },
-          { icon: <TrendingUp size={16} />, title: "Measurement & ROI", items: ["Foot traffic attribution reporting", "Dwell time & engagement metrics", "Digital impression reporting", "Post-campaign ROI dashboard"] },
-        ].map((c, i) => (
-          <motion.div key={c.title} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.09 }}
-            style={{ padding: "clamp(12px,1.8vw,20px)", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", display: "flex", gap: 12 }}>
-            <div style={{ color: "#c9a227", flexShrink: 0, marginTop: 2 }}>{c.icon}</div>
-            <div>
-              <div style={{ fontSize: "clamp(10px,1.2vw,14px)", fontWeight: 700, color: "#fff", marginBottom: "6%" }}>{c.title}</div>
-              {c.items.map(item => (
-                <div key={item} style={{ display: "flex", gap: 6, fontSize: "clamp(7px,0.8vw,10px)", color: "rgba(255,255,255,0.45)", marginBottom: "4%" }}>
-                  <span style={{ color: "#c9a227" }}>·</span>{item}
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        ))}
-      </CardGrid>
-    </Slide>
-  );
-}
-
-function SlideSponsorActivation({ openModal }) {
-  return (
-    <Slide bg="#fff" style={{ padding: "4% 7%" }}>
-      <Tag color="#c9a227">Activation Gallery</Tag>
-      <H dark={false} size="md">Bring Your Brand<br />to Life at MOA</H>
-      <Sub dark={false}>From immersive brand worlds to live experiences — our activation spaces are built for impact.</Sub>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginTop: "2%", flex: 1 }}>
-        {[
-          { title: "Product Launch Stage", img: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600&q=70", tag: "HIGH IMPACT" },
-          { title: "Brand Experience Zone", img: "https://images.unsplash.com/photo-1511578314322-379afb476865?w=600&q=70", tag: "IMMERSIVE" },
-          { title: "Sampling & Demo Hub", img: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=600&q=70", tag: "DIRECT REACH" },
-        ].map((item, i) => (
-          <motion.div key={item.title} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.1 }}
-            style={{ borderRadius: 10, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", position: "relative" }}>
-            <img src={item.img} alt={item.title} style={{ width: "100%", height: "80%", objectFit: "cover", display: "block", opacity: 0, transition: "opacity 0.4s" }} onLoad={e => e.target.style.opacity = 1} />
-            <div style={{ position: "absolute", top: 10, left: 10, padding: "3px 10px", borderRadius: 3, background: "#c9a227" }}>
-              <span style={{ fontSize: 7, fontWeight: 700, color: "#000", letterSpacing: "0.1em" }}>{item.tag}</span>
-            </div>
-            <div style={{ padding: "12px 14px", background: "#fff" }}>
-              <div style={{ fontSize: "clamp(9px,1.1vw,13px)", fontWeight: 700, color: "#111" }}>{item.title}</div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-      <div style={{ textAlign: "center", marginTop: "3%" }}>
-        <GoldBtn onClick={() => openModal("sponsorship")}>Discuss a Custom Activation</GoldBtn>
-      </div>
-    </Slide>
-  );
-}
-
-function SlideDataOverview() {
-  return (
-    <Slide bg="#0a0a0a">
-      <Tag>Data & Insights</Tag>
-      <H size="md">Data-Driven<br />Partnership Decisions</H>
-      <Sub>Every MOA partnership comes with access to real data — so you know exactly what your investment delivers.</Sub>
-      <CardGrid cols={4}>
-        {[
-          { icon: <Users size={16} />, label: "Visitor Counts", value: "Real-time footfall", color: "#c9a227" },
-          { icon: <Clock size={16} />, label: "Dwell Time", value: "By zone & hour", color: "#e8630a" },
-          { icon: <DollarSign size={16} />, label: "Spend Data", value: "Category & tenant", color: "#a16207" },
-          { icon: <Target size={16} />, label: "Conversion", value: "Activation attribution", color: "#c9a227" },
-        ].map((c, i) => (
-          <motion.div key={c.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
-            style={{ padding: "clamp(14px,2vw,22px)", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: `1px solid ${c.color}22`, textAlign: "center" }}>
-            <div style={{ color: c.color, display: "flex", justifyContent: "center", marginBottom: "12%" }}>{c.icon}</div>
-            <div style={{ fontSize: "clamp(9px,1.1vw,13px)", fontWeight: 700, color: "#fff", marginBottom: "4%" }}>{c.label}</div>
-            <div style={{ fontSize: "clamp(7px,0.85vw,10px)", color: "rgba(255,255,255,0.4)" }}>{c.value}</div>
-          </motion.div>
-        ))}
-      </CardGrid>
-      <div style={{ marginTop: 14, padding: "18px 20px", borderRadius: 10, background: "rgba(201,162,39,0.06)", border: "1px solid rgba(201,162,39,0.2)" }}>
-        <div style={{ fontSize: "clamp(9px,1.1vw,13px)", fontWeight: 700, color: "#c9a227", marginBottom: 8 }}>What Partners Receive</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
-          {["Monthly foot traffic reports", "Activation performance dashboards", "Competitive category insights", "Audience profile breakdowns"].map(item => (
-            <div key={item} style={{ display: "flex", gap: 6, fontSize: "clamp(7px,0.85vw,10px)", color: "rgba(255,255,255,0.5)" }}>
-              <span style={{ color: "#c9a227" }}>·</span>{item}
-            </div>
-          ))}
         </div>
       </div>
-    </Slide>
-  );
-}
-
-function SlideDataDemographics() {
-  return (
-    <Slide bg="#fff" style={{ padding: "4% 7%" }}>
-      <Tag color="#c9a227">Audience Analytics</Tag>
-      <H dark={false} size="md">Know Your<br />Audience Before<br />You Arrive</H>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: "3%", flex: 1 }}>
-        <div>
-          <div style={{ fontSize: "clamp(9px,1vw,12px)", fontWeight: 700, color: "#111", marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.08em" }}>Household Income</div>
-          {[
-            { label: "$150K+", pct: 22, color: "#92400e" },
-            { label: "$100–149K", pct: 28, color: "#b45309" },
-            { label: "$75–99K", pct: 20, color: "#c9a227" },
-            { label: "Under $75K", pct: 30, color: "#e8630a" },
-          ].map((b, i) => (
-            <div key={b.label} style={{ marginBottom: 10 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                <span style={{ fontSize: "clamp(7px,0.9vw,11px)", color: "#555" }}>{b.label}</span>
-                <span style={{ fontSize: "clamp(7px,0.9vw,11px)", color: "#111", fontWeight: 700 }}>{b.pct}%</span>
+      <div style={{ flex: 1, zIndex: 1, position: "relative", background: "#fff", display: "flex", flexDirection: "column" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4,1fr)", gap: 1, flex: 1 }}>
+          {stats.map((s, i) => (
+            <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .1 + i * .07 }}
+              style={{ padding: "clamp(12px,2vw,26px)", background: s.dark ? "#0a0806" : "#f7f3eb", borderBottom: `3px solid ${GOLD}`, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+              <div style={{ fontFamily: "var(--display)", fontSize: "clamp(24px,4vw,60px)", color: s.dark ? GOLD : "#0a0806", lineHeight: 1, marginBottom: 6 }}>
+                {s.prefix || ""}<Counter to={s.v} suffix={s.suffix} delay={.2 + i * .07} decimals={s.decimals || 0} />
               </div>
-              <div style={{ height: 7, background: "#f0ece4", borderRadius: 4, overflow: "hidden" }}>
-                <motion.div initial={{ width: 0 }} animate={{ width: `${b.pct}%` }} transition={{ delay: i * 0.1, duration: 0.7 }}
-                  style={{ height: "100%", background: b.color, borderRadius: 4 }} />
-              </div>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {[
-            { label: "Purchase Intent", value: "84%", sub: "Visitors come with intent to buy" },
-            { label: "Brand Discovery", value: "62%", sub: "Discover new brands during visit" },
-            { label: "Return Rate", value: "71%", sub: "Return within 90 days" },
-            { label: "Recommendation Rate", value: "88%", sub: "Recommend MOA to others" },
-          ].map((item, i) => (
-            <motion.div key={item.label} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
-              style={{ padding: "12px 16px", borderRadius: 8, background: "#f8f5ef", border: "1px solid #ece8e0", display: "flex", alignItems: "center", gap: 14 }}>
-              <div style={{ fontSize: "clamp(18px,2.5vw,30px)", fontWeight: 900, color: "#c9a227", minWidth: "max-content" }}>{item.value}</div>
               <div>
-                <div style={{ fontSize: "clamp(9px,1vw,12px)", fontWeight: 700, color: "#111" }}>{item.label}</div>
-                <div style={{ fontSize: "clamp(7px,0.8vw,10px)", color: "#888" }}>{item.sub}</div>
+                <div style={{ fontSize: "clamp(9px,1.2vw,11px)", fontWeight: 700, color: s.dark ? "rgba(255,255,255,.75)" : "#222", marginBottom: 2 }}>{s.label}</div>
+                <div style={{ fontSize: "clamp(7px,1vw,9px)", color: s.dark ? "rgba(255,255,255,.3)" : "#999" }}>{s.sub}</div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .6 }}
+          style={{ display: "flex", gap: 1, flexWrap: isMobile ? "wrap" : "nowrap" }}>
+          {[["$200+", "Avg Spend"], ["365", "Days/Year"], ["100+", "Countries"], ["12K", "Jobs"], ["3.2h", "Dwell"]].map(([v, l]) => (
+            <div key={l} style={{ flex: isMobile ? "1 1 30%" : 1, padding: "10px 10px", background: "#111009" }}>
+              <div style={{ fontFamily: "var(--mono)", fontSize: "clamp(11px,1.8vw,19px)", color: GOLD }}>{v}</div>
+              <div style={{ fontSize: 7, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: "0.07em", marginTop: 2 }}>{l}</div>
+            </div>
+          ))}
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+function SlideAudience({ animKey, persona, isMobile }) {
+  const [activeDemo, setActiveDemo] = useState(0);
+  const demos = [
+    { title: "Income", icon: <DollarSign size={14} />, stat: "70%", sub: "HHI $85K+", detail: "Seven in ten MOA visitors earn above $85K household income — well above the national median." },
+    { title: "Intent", icon: <TrendingUp size={14} />, stat: "84%", sub: "Purchase intent", detail: "84% of visitors arrive with a specific purchase in mind. This isn't browsing — it's buying." },
+    { title: "Origin", icon: <Globe size={14} />, stat: "55%", sub: "Out-of-state", detail: "More than half of visitors travel from outside Minnesota, including guests from 100+ countries." },
+    { title: "Gender", icon: <Users size={14} />, stat: "62%", sub: "Female-led visits", detail: "62% of shopping decisions are led by female visitors — MOA's highest-converting demographic." },
+  ];
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100%", background: "#0a0806", overflow: isMobile ? "auto" : "hidden", display: isMobile ? "block" : "grid", gridTemplateColumns: "1fr 1fr" }}>
+      <video autoPlay muted loop playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: .05, filter: "grayscale(1)", zIndex: 0 }}>
+        <source src={ENT_VID} type="video/mp4" />
+      </video>
+      <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: isMobile ? "24px 6%" : "0 6% 0 7%", borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,.06)", borderBottom: isMobile ? "1px solid rgba(255,255,255,.06)" : "none" }}>
+        <motion.div key={animKey} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+            <div style={{ width: 36, height: 2, background: GOLD }} /><span style={{ fontSize: 9, color: GOLD, letterSpacing: "0.25em", textTransform: "uppercase", fontWeight: 700 }}>Our Audience</span>
+          </div>
+          <h2 style={{ fontFamily: "var(--display)", fontSize: "clamp(30px,5vw,72px)", color: "#fff", lineHeight: .88, textTransform: "uppercase", marginBottom: 18 }}>
+            {persona.brand}'s<br />Ideal Customer<br />Is Already <span className="shimmer-gold">Here</span>
+          </h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {demos.map((d, i) => (
+              <motion.button key={d.title} data-mag onClick={() => setActiveDemo(i)}
+                initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .1 + i * .07 }}
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: activeDemo === i ? `${GOLD}12` : "rgba(255,255,255,.04)", border: `1px solid ${activeDemo === i ? GOLD + "40" : "rgba(255,255,255,.07)"}`, borderLeft: `3px solid ${activeDemo === i ? GOLD : "transparent"}`, borderRadius: 4, cursor: "pointer", transition: "all .2s", textAlign: "left" }}>
+                <div style={{ color: activeDemo === i ? GOLD : "rgba(255,255,255,.3)", flexShrink: 0 }}>{d.icon}</div>
+                <div style={{ flex: 1 }}><div style={{ fontSize: 11, fontWeight: 700, color: activeDemo === i ? "#fff" : "rgba(255,255,255,.5)" }}>{d.title}</div></div>
+                <div style={{ fontFamily: "var(--display)", fontSize: 20, color: activeDemo === i ? GOLD : "rgba(255,255,255,.25)", lineHeight: 1 }}>{d.stat}</div>
+                <div style={{ fontSize: 8, color: "rgba(255,255,255,.25)" }}>{d.sub}</div>
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+      <div style={{ display: "flex", position: "relative", zIndex: 1, flexDirection: "column", justifyContent: "center", padding: isMobile ? "24px 6%" : "0 7% 0 5%" }}>
+        <AnimatePresence mode="wait">
+          <motion.div key={activeDemo} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: .35 }}>
+            <div style={{ width: 52, height: 52, borderRadius: "50%", background: `radial-gradient(circle,${GOLD}30,${GOLD}08)`, border: `2px solid ${GOLD}40`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14, color: GOLD }}>{demos[activeDemo].icon}</div>
+            <div style={{ fontFamily: "var(--display)", fontSize: "clamp(44px,7vw,90px)", color: GOLD, lineHeight: 1, marginBottom: 6 }}>{demos[activeDemo].stat}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 10 }}>{demos[activeDemo].sub}</div>
+            <p style={{ fontSize: 12, color: "rgba(255,255,255,.45)", lineHeight: 1.75, maxWidth: 340, marginBottom: 20 }}>{demos[activeDemo].detail}</p>
+            <div style={{ display: "flex", gap: 5 }}>
+              {demos.map((_, i) => (<div key={i} style={{ width: i === activeDemo ? 20 : 5, height: 5, borderRadius: 3, background: i === activeDemo ? GOLD : "rgba(255,255,255,.15)", transition: "all .3s" }} />))}
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+function SlideRetail({ animKey, openContact, persona, isMobile }) {
+  const [activeTab, setActiveTab] = useState("flagship");
+  const tabs = {
+    flagship: { label: "Flagship", size: "5,000–50,000 sq ft", term: "1–10 year lease", benefit: "Premium corner positioning, anchor status, exclusivity negotiation", img: IMG.ret_1 },
+    inline: { label: "Inline", size: "800–5,000 sq ft", term: "6 months–5 years", benefit: "High-traffic corridors, flexible fit-out, proven category adjacency", img: IMG.ret_2 },
+    popup: { label: "Pop-Up", size: "Flex formats", term: "1 day–6 months", benefit: "Test-and-learn, seasonal activations, launch events, product drops", img: IMG.ret_3 },
+    kiosk: { label: "Kiosk / RMU", size: "50–300 sq ft", term: "Monthly rolling", benefit: "Lowest barrier to entry, highest-traffic zones, immediate presence", img: IMG.ret_4 },
+  };
+  const t = tabs[activeTab];
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100%", background: "#0c0a07", overflow: isMobile ? "auto" : "hidden", display: isMobile ? "block" : "grid", gridTemplateColumns: "320px 1fr" }}>
+      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: isMobile ? "24px 6%" : "0 5% 0 7%", borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,.06)" }}>
+        <motion.div key={animKey} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+            <div style={{ width: 36, height: 2, background: GOLD }} /><span style={{ fontSize: 9, color: GOLD, letterSpacing: "0.25em", textTransform: "uppercase", fontWeight: 700 }}>Retail</span>
+          </div>
+          <h2 style={{ fontFamily: "var(--display)", fontSize: "clamp(28px,4.5vw,58px)", color: "#fff", lineHeight: .88, textTransform: "uppercase", marginBottom: 16 }}>
+            Find the Right Format for <span className="shimmer-gold">{persona.brand}</span>
+          </h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 16 }}>
+            {Object.entries(tabs).map(([k, v]) => (
+              <button key={k} data-mag onClick={() => setActiveTab(k)} style={{ padding: "9px 12px", borderRadius: 3, textAlign: "left", background: activeTab === k ? `${GOLD}12` : "rgba(255,255,255,.04)", border: `1px solid ${activeTab === k ? GOLD + "40" : "rgba(255,255,255,.07)"}`, borderLeft: `3px solid ${activeTab === k ? GOLD : "transparent"}`, cursor: "pointer", transition: "all .2s", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: activeTab === k ? GOLD : "rgba(255,255,255,.5)" }}>{v.label}</span>
+                <span style={{ fontSize: 8, color: "rgba(255,255,255,.3)", fontFamily: "var(--mono)" }}>{v.size}</span>
+              </button>
+            ))}
+          </div>
+          <GoldButton onClick={openContact}>Inquire About Space <ArrowRight size={12} /></GoldButton>
+        </motion.div>
+      </div>
+      <div style={{ position: isMobile ? "relative" : "relative", minHeight: isMobile ? 240 : undefined, overflow: "hidden" }}>
+        <AnimatePresence mode="wait">
+          <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "absolute", inset: 0 }}>
+            <img src={t.img} alt={t.label} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "saturate(.65)" }} />
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(5,4,3,.97) 0%,rgba(5,4,3,.3) 60%,rgba(5,4,3,.1) 100%)" }} />
+            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "5%" }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+                {[["Size", t.size], ["Term", t.term]].map(([k, v]) => (
+                  <div key={k} style={{ padding: "10px 14px", background: "rgba(5,4,3,.78)", backdropFilter: "blur(12px)", border: `1px solid ${GOLD}30`, borderRadius: 3, flex: "1 1 120px" }}>
+                    <div style={{ fontSize: 8, color: GOLD, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>{k}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ padding: "12px 14px", background: "rgba(5,4,3,.82)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,.08)", borderRadius: 3 }}>
+                <div style={{ fontSize: 8, color: "rgba(255,255,255,.4)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>Key Benefit</div>
+                <div style={{ fontSize: 12, color: "#fff", lineHeight: 1.55 }}>{t.benefit}</div>
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+function SlideLuxury({ animKey, openContact, isMobile }) {
+  const brands = ["LOUIS VUITTON", "GUCCI", "PRADA", "CHANEL", "HERMÈS", "TIFFANY & CO.", "ROLEX", "CARTIER", "BURBERRY", "BALENCIAGA", "OMEGA", "COACH", "FENDI", "BOTTEGA VENETA"];
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100%", overflow: isMobile ? "auto" : "hidden", background: "linear-gradient(135deg,#0a0805 0%,#1a1206 100%)" }}>
+      <img src={IMG.luxury} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: .12 }} />
+      <div style={{ position: "absolute", inset: 0, backgroundImage: `repeating-linear-gradient(45deg,${GOLD}07 0px,${GOLD}07 1px,transparent 1px,transparent 56px)` }} />
+      <div style={{ position: "relative", zIndex: 2, height: isMobile ? "auto" : "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: isMobile ? "24px 6%" : "0 7%" }}>
+        <motion.div key={animKey} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+            <div style={{ width: 36, height: 2, background: GOLD }} /><span style={{ fontSize: 9, color: GOLD, letterSpacing: "0.25em", textTransform: "uppercase", fontWeight: 700 }}>Luxury Wing</span>
+          </div>
+          <h2 style={{ fontFamily: "var(--display)", fontSize: "clamp(36px,6.5vw,86px)", color: "#fff", lineHeight: .88, textTransform: "uppercase", marginBottom: 14 }}>
+            The Finest Company in <span className="shimmer-gold">North America</span>
+          </h2>
+          <p style={{ fontSize: "clamp(11px,1.4vw,13px)", color: "rgba(255,255,255,.38)", maxWidth: 480, lineHeight: 1.65, marginBottom: 20 }}>
+            MOA's luxury corridor hosts 100+ premium tenants. 70% of visitors earn $85K+ household income.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 20, maxWidth: 420 }}>
+            {[["100+", "Luxury Tenants"], ["$500+", "Avg Transaction"], ["70%", "HHI $85K+"]].map(([v, l]) => (
+              <div key={l} style={{ padding: "12px 14px", background: `${GOLD}0d`, border: `1px solid ${GOLD}28`, textAlign: "center", borderRadius: 3 }}>
+                <div style={{ fontFamily: "var(--display)", fontSize: "clamp(18px,2.8vw,34px)", color: GOLD, lineHeight: 1, marginBottom: 4 }}>{v}</div>
+                <div style={{ fontSize: 7, color: "rgba(255,255,255,.38)", textTransform: "uppercase", letterSpacing: "0.07em" }}>{l}</div>
+              </div>
+            ))}
+          </div>
+          <div className="ticker-wrap" style={{ marginBottom: 18, padding: "10px 0", borderTop: "1px solid rgba(255,255,255,.06)", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
+            <div className="ticker">{[...brands, ...brands].map((b, i) => (<span key={i} style={{ display: "inline-block", padding: "0 20px", fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,.25)", letterSpacing: "0.12em" }}>{b}</span>))}</div>
+          </div>
+          <GoldButton outline onClick={openContact}>Request Luxury Leasing Info <ArrowRight size={12} /></GoldButton>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+function SlideDining({ animKey, openContact, isMobile }) {
+  const [expanded, setExpanded] = useState(null);
+  const concepts = [
+    { name: "Fine Dining", count: "15+", icon: <Award size={14} />, detail: "White-tablecloth restaurants and chef-driven concepts. Average check $80+." },
+    { name: "Fast Casual", count: "35+", icon: <Coffee size={14} />, detail: "The volume engine. High throughput, brand exposure to repeat visitors 4–8× per month." },
+    { name: "Food Hall", count: "Global Flavors", icon: <Globe size={14} />, detail: "MOA's international food hall. Longest average dwell time in the building." },
+    { name: "Bar & Lounge", count: "8+", icon: <Music size={14} />, detail: "Evening economy. Extends dwell time. Ideal for spirits, wine, and lifestyle brand activations." },
+  ];
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100%", overflow: isMobile ? "auto" : "hidden" }}>
+      <img src={IMG.dining} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+      <div style={{ position: "absolute", inset: 0, background: isMobile ? "rgba(5,4,3,.88)" : "linear-gradient(to right,rgba(5,4,3,.92) 42%,rgba(5,4,3,.2) 100%)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(5,4,3,.7) 0%,transparent 50%)" }} />
+      <div style={{ position: "relative", zIndex: 2, height: isMobile ? "auto" : "100%", display: "flex", alignItems: isMobile ? "flex-start" : "center", padding: isMobile ? "24px 6%" : "0 7%" }}>
+        <motion.div key={animKey} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} style={{ maxWidth: 540, width: "100%" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+            <div style={{ width: 36, height: 2, background: "#E8630A" }} /><span style={{ fontSize: 9, color: "#E8630A", letterSpacing: "0.25em", textTransform: "uppercase", fontWeight: 700 }}>Dining & Lifestyle</span>
+          </div>
+          <h2 style={{ fontFamily: "var(--display)", fontSize: "clamp(36px,6vw,82px)", color: "#fff", lineHeight: .88, textTransform: "uppercase", marginBottom: 12 }}>
+            Where Food Becomes Destination
+          </h2>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,.45)", lineHeight: 1.65, marginBottom: 16 }}>80+ restaurants across 15 cuisines. Diners stay 3× longer and spend 2.4× more.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 16 }}>
+            {concepts.map((c, i) => (
+              <motion.div key={c.name} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .1 + i * .07 }}>
+                <button data-mag onClick={() => setExpanded(expanded === i ? null : i)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: expanded === i ? "rgba(232,99,10,.12)" : "rgba(5,4,3,.6)", backdropFilter: "blur(12px)", border: `1px solid ${expanded === i ? "#E8630A40" : "rgba(255,255,255,.08)"}`, borderRadius: 3, cursor: "pointer", transition: "all .2s" }}>
+                  <div style={{ color: "#E8630A", flexShrink: 0 }}>{c.icon}</div>
+                  <div style={{ flex: 1, textAlign: "left" }}><div style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{c.name}</div></div>
+                  <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "#E8630A" }}>{c.count}</div>
+                  <div style={{ color: "rgba(255,255,255,.3)", transform: expanded === i ? "rotate(180deg)" : "none", transition: "transform .2s" }}><ChevronDown size={12} /></div>
+                </button>
+                <AnimatePresence>
+                  {expanded === i && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: "hidden" }}>
+                      <div style={{ padding: "10px 12px", background: "rgba(232,99,10,.06)", border: "1px solid rgba(232,99,10,.15)", borderTop: "none", fontSize: 11, color: "rgba(255,255,255,.5)", lineHeight: 1.65 }}>{c.detail}</div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            ))}
+          </div>
+          <GoldButton onClick={openContact}>Explore F&B Partnership <ArrowRight size={12} /></GoldButton>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+function SlideEntertain({ animKey, openContact, isMobile }) {
+  const [err, setErr] = useState(false);
+  const [activeAtt, setActiveAtt] = useState(0);
+  const atts = [
+    { icon: <Zap size={18} />, title: "Nickelodeon Universe", sub: "8-acre indoor theme park · 27 rides · 5M+ annual visitors", color: "#FFA500", stat: "5M+", statLabel: "Annual Visitors" },
+    { icon: <Globe size={18} />, title: "SEA LIFE Aquarium", sub: "10,000+ sea creatures · Walk-through ocean tunnel", color: "#0096FF", stat: "1.2M+", statLabel: "Tickets/Year" },
+    { icon: <Music size={18} />, title: "Concert Hall", sub: "3,000 capacity · Concert-grade acoustics", color: "#A855F7", stat: "200+", statLabel: "Shows/Year" },
+    { icon: <Building2 size={18} />, title: "Expo Center", sub: "200,000 sq ft · Up to 50,000 attendees", color: "#22C55E", stat: "365+", statLabel: "Event Days/Year" },
+  ];
+  const a = atts[activeAtt];
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100%", overflow: isMobile ? "auto" : "hidden" }}>
+      {!err ? <video autoPlay muted loop playsInline onError={() => setErr(true)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: .42 }}><source src={ENT_VID} type="video/mp4" /></video>
+        : <img src="https://images.unsplash.com/photo-1493676304819-0d7a8d026dcf?w=1600&q=80" alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: .35 }} />}
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom,rgba(5,4,3,.65) 0%,rgba(5,4,3,.2) 40%,rgba(5,4,3,.95) 100%)" }} />
+      <div style={{ position: "relative", zIndex: 2, height: isMobile ? "auto" : "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: isMobile ? "24px 6%" : "5% 7%" }}>
+        <motion.div key={animKey} initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <div style={{ width: 36, height: 2, background: "#5A7ABD" }} /><span style={{ fontSize: 9, color: "#5A7ABD", letterSpacing: "0.25em", textTransform: "uppercase", fontWeight: 700 }}>Entertainment</span>
+          </div>
+          <h2 style={{ fontFamily: "var(--display)", fontSize: "clamp(40px,8vw,100px)", color: "#fff", lineHeight: .88, textTransform: "uppercase", marginBottom: 18 }}>Beyond Shopping</h2>
+          <div style={{ display: "flex", gap: 2, marginBottom: 8 }}>
+            {atts.map((att, i) => (
+              <motion.button key={att.title} data-mag onClick={() => setActiveAtt(i)}
+                style={{ flex: 1, padding: isMobile ? "10px 6px" : "12px 8px", background: activeAtt === i ? "rgba(5,4,3,.88)" : "rgba(5,4,3,.52)", backdropFilter: "blur(20px)", borderTop: `2px solid ${activeAtt === i ? att.color : "rgba(255,255,255,.1)"}`, border: "none", cursor: "pointer", transition: "all .25s", textAlign: "left" }}>
+                <div style={{ color: activeAtt === i ? att.color : "rgba(255,255,255,.3)", marginBottom: 4, transition: "color .2s" }}>{att.icon}</div>
+                <div style={{ fontSize: 8, fontWeight: 700, color: activeAtt === i ? "#fff" : "rgba(255,255,255,.38)", letterSpacing: "0.04em", transition: "color .2s" }}>{att.title.split(" ")[0]}</div>
+              </motion.button>
+            ))}
+          </div>
+          <AnimatePresence mode="wait">
+            <motion.div key={activeAtt} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              style={{ padding: "14px 16px", background: "rgba(5,4,3,.82)", backdropFilter: "blur(20px)", border: `1px solid ${a.color}30`, borderRadius: "0 0 4px 4px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 3 }}>{a.title}</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,.45)", lineHeight: 1.5 }}>{a.sub}</div>
+              </div>
+              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                <div style={{ fontFamily: "var(--display)", fontSize: 28, color: a.color, lineHeight: 1 }}>{a.stat}</div>
+                <div style={{ fontSize: 8, color: "rgba(255,255,255,.3)", textTransform: "uppercase" }}>{a.statLabel}</div>
+              </div>
+              <button data-mag onClick={openContact} style={{ padding: "7px 12px", background: a.color, border: "none", borderRadius: 3, color: "#000", fontSize: 9, fontWeight: 800, cursor: "pointer", flexShrink: 0 }}>Partner →</button>
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+function SlideEvents({ animKey, openContact, persona, isMobile }) {
+  const events = [
+    { brand: "Nike", event: "Air Max Day Activation", year: "2024", att: "12,000+" },
+    { brand: "Samsung", event: "Galaxy Launch Event", year: "2024", att: "8,500+" },
+    { brand: "Disney", event: "Wish Premiere Experience", year: "2023", att: "22,000+" },
+    { brand: "Taylor Swift", event: "Eras Tour Pop-Up", year: "2023", att: "40,000+" },
+    { brand: "NFL", event: "Super Bowl Week Hub", year: "2022", att: "50,000+" },
+    { brand: "Porsche", event: "Taycan World Launch", year: "2022", att: "6,000+" },
+  ];
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100%", overflow: isMobile ? "auto" : "hidden", display: isMobile ? "block" : "grid", gridTemplateColumns: "1fr 1fr" }}>
+      <video autoPlay muted loop playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: .22, filter: "saturate(.6)" }}><source src={HERO_VID} type="video/mp4" /></video>
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg,rgba(10,5,16,.97) 0%,rgba(5,3,8,.92) 100%)" }} />
+      <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", justifyContent: "center", padding: isMobile ? "24px 6%" : "0 6% 0 7%", borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,.05)" }}>
+        <motion.div key={animKey} initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+            <div style={{ width: 36, height: 2, background: "#8B6BA8" }} /><span style={{ fontSize: 9, color: "#8B6BA8", letterSpacing: "0.25em", textTransform: "uppercase", fontWeight: 700 }}>Events & Activations</span>
+          </div>
+          <h2 style={{ fontFamily: "var(--display)", fontSize: "clamp(30px,5vw,66px)", color: "#fff", lineHeight: .88, textTransform: "uppercase", marginBottom: 14 }}>
+            The World's Best Brands Trust <span style={{ color: "#8B6BA8" }}>This Stage</span>
+          </h2>
+          <p style={{ fontSize: 11, color: "rgba(255,255,255,.38)", lineHeight: 1.7, marginBottom: 16 }}>365+ events annually. Up to 50,000 guests. Imagine what {persona.brand} could do here.</p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 16 }}>
+            {[["365+", "Events/Year"], ["50K", "Max Capacity"], ["200K sqft", "Event Space"], ["24/7", "Support"]].map(([v, l]) => (
+              <div key={l} style={{ padding: "9px 10px", background: "rgba(139,107,168,.1)", border: "1px solid rgba(139,107,168,.22)", borderRadius: 3 }}>
+                <div style={{ fontFamily: "var(--display)", fontSize: "clamp(16px,2.5vw,30px)", color: "#8B6BA8", lineHeight: 1, marginBottom: 2 }}>{v}</div>
+                <div style={{ fontSize: 7, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: "0.07em" }}>{l}</div>
+              </div>
+            ))}
+          </div>
+          <GoldButton onClick={openContact}>Plan {persona.brand}'s Event <ArrowRight size={12} /></GoldButton>
+        </motion.div>
+      </div>
+      <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", justifyContent: "center", padding: isMobile ? "0 6% 24px" : "0 7% 0 5%" }}>
+        <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.25)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 10 }}>Past Activations</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          {events.map((e, i) => (
+            <motion.div key={e.brand} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .18 + i * .07 }}
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "rgba(255,255,255,.03)", borderLeft: `2px solid rgba(139,107,168,${.45 - i * .05})`, transition: "all .2s" }}
+              onMouseEnter={el => el.currentTarget.style.background = "rgba(139,107,168,.08)"}
+              onMouseLeave={el => el.currentTarget.style.background = "rgba(255,255,255,.03)"}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{e.brand}</div>
+                <div style={{ fontSize: 8, color: "rgba(255,255,255,.3)" }}>{e.event}</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 11, color: "#8B6BA8", fontWeight: 700, fontFamily: "var(--mono)" }}>{e.att}</div>
+                <div style={{ fontSize: 7, color: "rgba(255,255,255,.2)" }}>{e.year}</div>
               </div>
             </motion.div>
           ))}
         </div>
       </div>
-    </Slide>
+    </div>
   );
 }
 
-function SlideDataDwell() {
-  const hours = [
-    { h: "9am", v: 15 }, { h: "10am", v: 30 }, { h: "11am", v: 55 },
-    { h: "12pm", v: 85 }, { h: "1pm", v: 92 }, { h: "2pm", v: 88 },
-    { h: "3pm", v: 75 }, { h: "4pm", v: 70 }, { h: "5pm", v: 82 },
-    { h: "6pm", v: 90 }, { h: "7pm", v: 78 }, { h: "8pm", v: 55 },
-    { h: "9pm", v: 30 }, { h: "10pm", v: 12 },
+function SlideSponsor({ animKey, openContact, persona, isMobile }) {
+  const [activeTier, setActiveTier] = useState(1);
+  const tiers = [
+    { tier: "Title Partner", price: "$5M+/yr", color: GOLD, perks: ["Naming rights on major venue", "All activation zones", "Exclusive category rights", "Media value $15M+", "VIP hospitality suite"] },
+    { tier: "Premier Partner", price: "$1M–$5M/yr", color: "#C0C8D0", perks: ["Category exclusivity", "Digital + physical branding", "10+ activation days/yr", "Co-branded campaigns", "Custom analytics dashboard"] },
+    { tier: "Associate", price: "$250K–$1M/yr", color: "#C47B1A", perks: ["Branded zones", "5 activation days/yr", "Social media features", "Email: 1×/yr"] },
   ];
-  const max = Math.max(...hours.map(h => h.v));
+  const t = tiers[activeTier];
   return (
-    <Slide bg="#0e0e0e">
-      <Tag>Foot Traffic</Tag>
-      <H size="md">Peak Traffic<br />Patterns</H>
-      <Sub>Understand exactly when your audience is here — and plan your activations accordingly.</Sub>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", marginTop: "2%" }}>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: "clamp(2px,0.6vw,7px)", height: "clamp(80px,12vw,150px)" }}>
-          {hours.map((h, i) => (
-            <div key={h.h} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-              <motion.div
-                initial={{ height: 0 }} animate={{ height: `${(h.v / max) * 100}%` }}
-                transition={{ delay: i * 0.04, duration: 0.5, ease: "easeOut" }}
-                style={{ width: "100%", background: h.v > 80 ? "linear-gradient(to top,#c9a227,#e8630a)" : "rgba(201,162,39,0.35)", borderRadius: "3px 3px 0 0", minHeight: 4 }}
-              />
-              <span style={{ fontSize: "clamp(5px,0.65vw,8px)", color: "rgba(255,255,255,0.3)", transform: "rotate(-35deg)", transformOrigin: "center", whiteSpace: "nowrap" }}>{h.h}</span>
-            </div>
-          ))}
-        </div>
-        <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
-          {[
-            { label: "Peak Hours", value: "12pm – 7pm", sub: "Consistently highest traffic" },
-            { label: "Weekend Premium", value: "+42%", sub: "Fri–Sun vs. weekday avg" },
-            { label: "Holiday Multiplier", value: "3–5x", sub: "During Thanksgiving–New Year" },
-          ].map(item => (
-            <div key={item.label} style={{ padding: "10px 14px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
-              <div style={{ fontSize: "clamp(14px,2vw,22px)", fontWeight: 900, color: "#c9a227", marginBottom: 4 }}>{item.value}</div>
-              <div style={{ fontSize: "clamp(8px,0.95vw,11px)", fontWeight: 700, color: "#fff", marginBottom: 3 }}>{item.label}</div>
-              <div style={{ fontSize: "clamp(6px,0.75vw,9px)", color: "rgba(255,255,255,0.35)" }}>{item.sub}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </Slide>
-  );
-}
-
-function SlideContactTeam({ openModal }) {
-  const team = [
-    { name: "Sarah Chen", title: "VP of Brand Partnerships", email: "s.chen@moa.com", dept: "Sponsorship & Enterprise" },
-    { name: "Marcus Williams", title: "Director of Retail Leasing", email: "m.williams@moa.com", dept: "Retail & Luxury" },
-    { name: "Priya Patel", title: "Events & Activations Lead", email: "p.patel@moa.com", dept: "Events & Entertainment" },
-    { name: "James Rivera", title: "Head of Dining Partnerships", email: "j.rivera@moa.com", dept: "F&B & Lifestyle" },
-  ];
-  return (
-    <Slide bg="#0a0a0a">
-      <Tag>Our Team</Tag>
-      <H size="md">Meet the<br />Partnerships Team</H>
-      <Sub>Dedicated experts who know MOA inside out — and who are ready to build something great with you.</Sub>
-      <CardGrid cols={4}>
-        {team.map((p, i) => (
-          <motion.div key={p.name} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
-            style={{ padding: "clamp(14px,2vw,22px)", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", textAlign: "center" }}>
-            <div style={{ width: "clamp(36px,5vw,56px)", height: "clamp(36px,5vw,56px)", borderRadius: "50%", background: "linear-gradient(135deg,#c9a227,#e8630a)", margin: "0 auto clamp(8px,1.5vw,16px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ fontSize: "clamp(12px,2vw,22px)", fontWeight: 800, color: "#fff" }}>{p.name[0]}</span>
-            </div>
-            <div style={{ fontSize: "clamp(9px,1.1vw,13px)", fontWeight: 700, color: "#fff", marginBottom: 4 }}>{p.name}</div>
-            <div style={{ fontSize: "clamp(7px,0.85vw,10px)", color: "#c9a227", fontWeight: 600, marginBottom: 4 }}>{p.title}</div>
-            <div style={{ fontSize: "clamp(6px,0.75vw,9px)", color: "rgba(255,255,255,0.3)", marginBottom: 10 }}>{p.dept}</div>
-            <div style={{ fontSize: "clamp(6px,0.75vw,9px)", color: "rgba(255,255,255,0.4)" }}>{p.email}</div>
-          </motion.div>
-        ))}
-      </CardGrid>
-      <div style={{ textAlign: "center", marginTop: "4%" }}>
-        <GoldBtn onClick={() => openModal("contact")}>Schedule a Meeting with Our Team</GoldBtn>
-      </div>
-    </Slide>
-  );
-}
-
-function SlideContactForm({ openModal }) {
-  return (
-    <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#0a0805,#1e1508)", display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 8%" }}>
-        <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}>
-          <MOALogo size={48} />
-          <div style={{ marginTop: "4%" }}>
-            <H size="lg">Let's Build<br /><em style={{ fontStyle: "italic", color: "#c9a227" }}>Something</em><br />Together</H>
+    <div style={{ position: "relative", width: "100%", height: "100%", background: "#060504", overflow: isMobile ? "auto" : "hidden", display: isMobile ? "block" : "grid", gridTemplateColumns: "1fr 1fr" }}>
+      <video autoPlay muted loop playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: .07, filter: "grayscale(1) sepia(.3)", zIndex: 0 }}><source src={HERO_VID} type="video/mp4" /></video>
+      <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(circle at 25% 50%,rgba(212,168,67,.05) 0%,transparent 55%),radial-gradient(circle at 75% 50%,rgba(74,154,122,.03) 0%,transparent 55%)` }} />
+      <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", justifyContent: "center", padding: isMobile ? "24px 6%" : "0 5% 0 7%", borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,.06)" }}>
+        <motion.div key={animKey} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+            <div style={{ width: 36, height: 2, background: "#4A9A7A" }} /><span style={{ fontSize: 9, color: "#4A9A7A", letterSpacing: "0.25em", textTransform: "uppercase", fontWeight: 700 }}>Sponsorship</span>
           </div>
-          <Sub>Whether you're a brand exploring retail, a company planning an event, or a partner seeking sponsorship — we want to hear from you.</Sub>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: "4%" }}>
-            {[
-              { icon: <Phone size={14} />, label: "1 (952) 883-8800" },
-              { icon: <Mail size={14} />, label: "partnerships@mallofamerica.com" },
-              { icon: <MapPin size={14} />, label: "60 E Broadway, Bloomington, MN 55425" },
-            ].map(item => (
-              <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "clamp(8px,1vw,12px)", color: "rgba(255,255,255,0.6)" }}>
-                <div style={{ color: "#c9a227" }}>{item.icon}</div>
-                {item.label}
+          <h2 style={{ fontFamily: "var(--display)", fontSize: "clamp(30px,5vw,68px)", color: "#fff", lineHeight: .88, textTransform: "uppercase", marginBottom: 18 }}>
+            Partner With <span className="shimmer-gold">40 Million</span> People
+          </h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 16 }}>
+            {tiers.map((ti, i) => (
+              <button key={ti.tier} data-mag onClick={() => setActiveTier(i)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderRadius: 4, background: activeTier === i ? `${ti.color}14` : "rgba(255,255,255,.04)", border: `1px solid ${activeTier === i ? ti.color + "44" : "rgba(255,255,255,.08)"}`, borderLeft: `3px solid ${activeTier === i ? ti.color : "transparent"}`, cursor: "pointer", transition: "all .2s", textAlign: "left" }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: activeTier === i ? "#fff" : "rgba(255,255,255,.45)" }}>{ti.tier}</div>
+                  <div style={{ fontSize: 9, color: ti.color, fontFamily: "var(--mono)", opacity: activeTier === i ? 1 : .5 }}>{ti.price}</div>
+                </div>
+                {activeTier === i && <div style={{ width: 6, height: 6, borderRadius: "50%", background: ti.color }} />}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {[["300+", "Screens"], ["2.8M", "Social"], ["1.1M", "Email"], ["500M+", "Impressions"]].map(([v, l]) => (
+              <div key={l} style={{ flex: "1 1 60px", padding: "7px 6px", background: "rgba(255,255,255,.04)", borderRadius: 3, textAlign: "center" }}>
+                <div style={{ fontFamily: "var(--mono)", fontSize: "clamp(10px,1.4vw,14px)", color: GOLD }}>{v}</div>
+                <div style={{ fontSize: 7, color: "rgba(255,255,255,.28)", textTransform: "uppercase", marginTop: 2 }}>{l}</div>
               </div>
             ))}
           </div>
         </motion.div>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 8% 0 4%" }}>
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
-          <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "clamp(16px,2.5vw,28px)" }}>
-            <div style={{ fontSize: "clamp(11px,1.4vw,16px)", fontWeight: 700, color: "#fff", marginBottom: 14 }}>Send Us a Message</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>
-              {["Full Name", "Company", "Email", "Phone"].map(ph => (
-                <input key={ph} placeholder={ph} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 5, padding: "9px 12px", color: "#fff", fontSize: 11, outline: "none", fontFamily: "'DM Sans',sans-serif", width: "100%", boxSizing: "border-box" }} />
-              ))}
+      <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", justifyContent: "center", padding: isMobile ? "0 6% 24px" : "0 7% 0 5%" }}>
+        <AnimatePresence mode="wait">
+          <motion.div key={activeTier} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            style={{ padding: "22px 20px", background: "rgba(255,255,255,.04)", border: `1px solid ${t.color}30`, borderTop: `3px solid ${t.color}`, borderRadius: 4 }}>
+            <div style={{ fontFamily: "var(--display)", fontSize: 24, color: t.color, marginBottom: 4 }}>{t.tier}</div>
+            <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "rgba(255,255,255,.35)", marginBottom: 16 }}>{t.price}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 18 }}>
+              {t.perks.map(p => (<div key={p} style={{ display: "flex", gap: 8, fontSize: 11, color: "rgba(255,255,255,.55)", alignItems: "flex-start" }}><span style={{ color: t.color, flexShrink: 0, marginTop: 2 }}>✦</span>{p}</div>))}
             </div>
-            <select style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 5, padding: "9px 12px", color: "rgba(255,255,255,0.6)", fontSize: 11, outline: "none", fontFamily: "'DM Sans',sans-serif", marginBottom: 8 }}>
-              <option>I'm interested in...</option>
-              <option>Retail Leasing</option>
-              <option>Sponsorship / Partnership</option>
-              <option>Event Hosting</option>
-              <option>Brand Activation</option>
-              <option>Other</option>
-            </select>
-            <textarea placeholder="Tell us about your project..." rows={3} style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 5, padding: "9px 12px", color: "#fff", fontSize: 11, outline: "none", resize: "none", marginBottom: 12, boxSizing: "border-box", fontFamily: "'DM Sans',sans-serif" }} />
-            <button style={{ width: "100%", padding: "11px 0", borderRadius: 5, background: "linear-gradient(135deg,#c9a227,#e8630a)", color: "#fff", fontSize: 11, fontWeight: 700, border: "none", cursor: "pointer", letterSpacing: "0.09em", textTransform: "uppercase" }}>
-              Submit →
+            <button data-mag onClick={openContact} style={{ width: "100%", padding: "10px 0", background: t.color, border: "none", borderRadius: 3, color: "#000", fontSize: 10, fontWeight: 800, cursor: "pointer", letterSpacing: "0.09em", textTransform: "uppercase" }}>
+              Get {persona.brand}'s Proposal →
             </button>
-            <p style={{ textAlign: "center", fontSize: 9, color: "rgba(255,255,255,0.2)", marginTop: 8, marginBottom: 0 }}>We respond within 24 hours</p>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+
+function SlideMomentMap({ animKey, openContact, persona, goTo, idx, isMobile }) {
+  const [zone, setZone] = useState(null);
+  const zones = [
+    { id: "north", label: "North Garden", x: 200, y: 60, r: 36, color: GOLD, type: "Fashion & Lifestyle", visitors: "12M/yr", desc: "The highest per-sq-ft revenue corridor in MOA. 180 premium storefronts anchored by aspirational fashion and lifestyle brands." },
+    { id: "west", label: "West Market", x: 62, y: 200, r: 36, color: "#7EC9A0", type: "Entertainment Hub", visitors: "14M/yr", desc: "Home to Nickelodeon Universe and SEA LIFE Aquarium. Highest-traffic zone by dwell time — family-first, highest spend-per-visit." },
+    { id: "east", label: "East Broadway", x: 338, y: 200, r: 36, color: "#9B7FD4", type: "Luxury Wing", visitors: "6M/yr", desc: "MOA's luxury corridor. Rolex. Louis Vuitton. Hermès. 100+ curated luxury tenants serving the most affluent segment." },
+    { id: "south", label: "South Avenue", x: 200, y: 338, r: 36, color: "#E8630A", type: "Dining & Retail", visitors: "8M/yr", desc: "MOA's largest dining concentration. Dwell-time leader driven by F&B foot traffic. The perfect co-marketing environment." },
+    { id: "center", label: "Central Atrium", x: 200, y: 200, r: 50, color: "#C9A84C", type: "Event Epicenter", visitors: "All 40M", desc: "The Grand Rotunda. 50,000-person capacity. Every visitor passes through — the most visible activation zone in North America." },
+  ];
+  const az = zones.find(z => z.id === zone);
+
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100%", background: "#060504", overflow: isMobile ? "auto" : "hidden", display: isMobile ? "block" : "grid", gridTemplateColumns: "1fr 1fr" }}>
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 25% 50%,rgba(212,168,67,.06) 0%,transparent 55%)" }} />
+
+      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", position: "relative", zIndex: 2, borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,.06)", borderBottom: isMobile ? "1px solid rgba(255,255,255,.06)" : "none", padding: isMobile ? "24px 6%" : "3% 5%" }}>
+        <div style={{ position: "absolute", top: 12, left: 12, display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: `rgba(212,168,67,.1)`, border: `1px solid ${GOLD}40`, borderRadius: 2, zIndex: 2 }}>
+          <Star size={10} style={{ color: GOLD }} />
+          <span style={{ fontSize: 7, color: GOLD, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>I Need to Be Here · 1/3</span>
+        </div>
+        <motion.div key={animKey} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} style={{ width: "100%", maxWidth: 400, marginTop: isMobile ? 32 : 0 }}>
+          <h2 style={{ fontFamily: "var(--display)", fontSize: "clamp(26px,4vw,52px)", color: "#fff", lineHeight: .9, textTransform: "uppercase", marginBottom: 6 }}>
+            Your Zone.<br /><span className="shimmer-gold">Your Audience.</span>
+          </h2>
+          <p style={{ fontSize: 10, color: "rgba(255,255,255,.35)", marginBottom: 16 }}>Click any zone to see where {persona.brand} fits best.</p>
+          <svg viewBox="0 0 400 400" style={{ width: "100%", height: "auto" }}>
+            <defs>
+              <pattern id="g3" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0L0 0 0 20" fill="none" stroke={`${GOLD}08`} strokeWidth=".5" /></pattern>
+              <filter id="glow3"><feGaussianBlur stdDeviation="5" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+            </defs>
+            <rect width="400" height="400" fill="url(#g3)" />
+            <rect x="22" y="22" width="356" height="356" rx="14" fill="rgba(255,255,255,.02)" stroke={`${GOLD}18`} strokeWidth="1.5" />
+            <rect x="177" y="22" width="46" height="356" fill="rgba(255,255,255,.015)" stroke="rgba(255,255,255,.03)" strokeWidth=".5" />
+            <rect x="22" y="177" width="356" height="46" fill="rgba(255,255,255,.015)" stroke="rgba(255,255,255,.03)" strokeWidth=".5" />
+            {[["N", 200, 12], ["S", 200, 396], ["E", 396, 200], ["W", 6, 200]].map(([d, x, y]) => (
+              <text key={d} x={x} y={y} textAnchor="middle" dominantBaseline="middle" fill={`${GOLD}35`} fontSize="8" fontFamily="var(--mono)">{d}</text>
+            ))}
+            {zones.map(z => (
+              <g key={z.id} onClick={() => setZone(z.id === zone ? null : z.id)} style={{ cursor: "pointer" }}>
+                {zone === z.id && (<circle cx={z.x} cy={z.y} r={z.r + 18} fill="none" stroke={z.color} strokeWidth=".8" filter="url(#glow3)"><animate attributeName="r" values={`${z.r + 10};${z.r + 24};${z.r + 10}`} dur="2.2s" repeatCount="indefinite" /><animate attributeName="opacity" values=".5;0;.5" dur="2.2s" repeatCount="indefinite" /></circle>)}
+                <circle cx={z.x} cy={z.y} r={z.r} fill={zone === z.id ? z.color + "25" : z.color + "0c"} stroke={zone === z.id ? z.color : z.color + "50"} strokeWidth={zone === z.id ? 2 : 1} style={{ transition: "all .3s", filter: zone === z.id ? `drop-shadow(0 0 12px ${z.color}60)` : "" }} />
+                <text x={z.x} y={z.y} textAnchor="middle" dominantBaseline="middle" fill={zone === z.id ? z.color : z.color + "85"} fontSize={z.id === "center" ? 7.5 : 6.5} fontWeight="700" fontFamily="var(--mono)" style={{ pointerEvents: "none" }}>{z.id === "center" ? "ATRIUM" : z.id.toUpperCase()}</text>
+              </g>
+            ))}
+          </svg>
+          <p style={{ fontSize: 7, color: "rgba(255,255,255,.16)", letterSpacing: "0.14em", textTransform: "uppercase", marginTop: 8, textAlign: "center" }}>Click any zone to explore</p>
+        </motion.div>
+      </div>
+
+      <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", justifyContent: "center", padding: isMobile ? "20px 6% 24px" : "3% 6% 3% 5%" }}>
+        <div style={{ position: "absolute", top: 12, right: 12, display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{ fontSize: 7, color: "rgba(255,255,255,.25)", letterSpacing: "0.1em" }}>Next: ROI</span>
+          <button data-mag onClick={() => goTo(idx + 1)} style={{ width: 26, height: 26, borderRadius: 3, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,.5)", cursor: "pointer" }}><ChevronRight size={12} /></button>
+        </div>
+        <AnimatePresence mode="wait">
+          {!az ? (
+            <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <h3 style={{ fontFamily: "var(--display)", fontSize: "clamp(24px,3.5vw,48px)", color: "#fff", lineHeight: .9, textTransform: "uppercase", marginBottom: 12 }}>5.6M Sq Ft.<br />5 Zones.<br /><span className="shimmer-gold">One Decision.</span></h3>
+              <p style={{ fontSize: 11, color: "rgba(255,255,255,.38)", marginBottom: 14, lineHeight: 1.6 }}>Select a zone to see where {persona.brand} fits best.</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {zones.map(z => (
+                  <button key={z.id} data-mag onClick={() => setZone(z.id)}
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", marginBottom: 0, background: "rgba(255,255,255,.04)", border: `1px solid ${z.color}18`, borderLeft: `3px solid ${z.color}`, borderRadius: 3, cursor: "pointer", textAlign: "left", transition: "all .2s" }}
+                    onMouseEnter={e => { e.currentTarget.style.background = `${z.color}0d`; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,.04)"; }}>
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: z.color, flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{z.label}</div>
+                      <div style={{ fontSize: 8, color: "rgba(255,255,255,.28)" }}>{z.type}</div>
+                    </div>
+                    <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: z.color }}>{z.visitors}</div>
+                    <ArrowRight size={10} style={{ color: "rgba(255,255,255,.2)" }} />
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div key={az.id} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
+              <button onClick={() => setZone(null)} style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", color: "rgba(255,255,255,.3)", cursor: "pointer", fontSize: 8, marginBottom: 14, letterSpacing: "0.07em", textTransform: "uppercase" }}><ChevronLeft size={10} /> All Zones</button>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                <div style={{ width: 12, height: 12, borderRadius: "50%", background: az.color, boxShadow: `0 0 18px ${az.color}90` }} />
+                <h3 style={{ fontFamily: "var(--display)", fontSize: "clamp(24px,4vw,52px)", color: "#fff", lineHeight: .92, textTransform: "uppercase" }}>{az.label}</h3>
+              </div>
+              <div style={{ display: "inline-flex", padding: "3px 10px", marginBottom: 14, background: `${az.color}15`, border: `1px solid ${az.color}40`, borderRadius: 2 }}>
+                <span style={{ fontSize: 8, color: az.color, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>{az.type}</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, marginBottom: 14 }}>
+                {[["Annual Traffic", az.visitors], ["Zone Type", az.type]].map(([k, v]) => (
+                  <div key={k} style={{ padding: "10px 12px", background: `${az.color}0f`, border: `1px solid ${az.color}28`, borderRadius: 3 }}>
+                    <div style={{ fontSize: 7, color: az.color, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>{k}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#fff", fontFamily: "var(--mono)" }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontSize: 11, color: "rgba(255,255,255,.45)", lineHeight: 1.75, marginBottom: 16 }}>{az.desc}</p>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <GoldButton onClick={() => goTo(idx + 1)} outline>Model ROI <ArrowRight size={12} /></GoldButton>
+                <GoldButton onClick={openContact}>Inquire Now <ArrowRight size={12} /></GoldButton>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+
+function SlideMomentROI({ animKey, openContact, persona, goTo, idx, isMobile }) {
+  const [roiType, setRoiType] = useState("sponsorship");
+  const [inv, setInv] = useState(500000);
+  const [dur, setDur] = useState(6);
+  const mults = {
+    sponsorship: { roi: 3.2, reach: 18e6, pr: 2.4, label: "Sponsorship" },
+    retail: { roi: 4.1, reach: 12e6, pr: 1.8, label: "Retail Lease" },
+    events: { roi: 5.8, reach: 25e3, pr: 3.2, label: "Event Hosting" },
+    popup: { roi: 2.9, reach: 8e5, pr: 1.5, label: "Pop-Up" }
+  };
+  const m = mults[roiType];
+  const ret = Math.round(inv * m.roi);
+  const reach = Math.round(m.reach * (dur / 12) * (inv / 5e5));
+  const pr = Math.round(inv * m.pr);
+  const fmt = n => n >= 1e9 ? `$${(n / 1e9).toFixed(1)}B` : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}K` : `$${n}`;
+  const fmtN = n => n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : `${n}`;
+
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100%", background: "#060504", overflow: isMobile ? "auto" : "hidden", display: isMobile ? "block" : "grid", gridTemplateColumns: "1fr 1.1fr" }}>
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 70% 50%,rgba(212,168,67,.07) 0%,transparent 55%)" }} />
+      <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", justifyContent: "center", padding: isMobile ? "24px 6%" : "0 6% 0 7%", borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,.06)" }}>
+        <div style={{ position: "absolute", top: 12, left: 12, display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: `rgba(212,168,67,.1)`, border: `1px solid ${GOLD}40`, borderRadius: 2 }}>
+          <Star size={10} style={{ color: GOLD }} />
+          <span style={{ fontSize: 7, color: GOLD, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>I Need to Be Here · 2/3</span>
+        </div>
+        <motion.div key={animKey} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} style={{ marginTop: isMobile ? 32 : 0 }}>
+          <h2 style={{ fontFamily: "var(--display)", fontSize: "clamp(28px,4.2vw,58px)", color: "#fff", lineHeight: .9, textTransform: "uppercase", marginBottom: 8 }}>
+            Model {persona.brand}'s <span className="shimmer-gold">Return.</span>
+          </h2>
+          <p style={{ fontSize: 10, color: "rgba(255,255,255,.35)", marginBottom: 20, lineHeight: 1.6 }}>Move the sliders. Watch your return update in real time.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 8, color: GOLD, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700, marginBottom: 8 }}>Partnership Type</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 5 }}>
+                {Object.entries(mults).map(([k, v]) => (
+                  <button key={k} data-mag onClick={() => setRoiType(k)} style={{ padding: "9px 8px", borderRadius: 3, fontSize: "clamp(9px,1.5vw,10px)", fontWeight: 700, background: roiType === k ? GOLD : "rgba(255,255,255,.05)", color: roiType === k ? "#000" : "rgba(255,255,255,.45)", border: `1px solid ${roiType === k ? GOLD : "rgba(255,255,255,.08)"}`, cursor: "pointer", transition: "all .2s" }}>{v.label}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 8, color: "rgba(255,255,255,.38)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>
+                Investment <span style={{ color: GOLD, fontFamily: "var(--mono)", fontSize: 13 }}>{fmt(inv)}</span>
+              </div>
+              <input type="range" min={50000} max={5000000} step={50000} value={inv} onChange={e => setInv(+e.target.value)} style={{ width: "100%" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 7.5, color: "rgba(255,255,255,.18)", marginTop: 4 }}><span>$50K</span><span>$5M</span></div>
+            </div>
+            <div>
+              <div style={{ fontSize: 8, color: "rgba(255,255,255,.38)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>
+                Duration <span style={{ color: GOLD, fontFamily: "var(--mono)", fontSize: 13 }}>{dur} months</span>
+              </div>
+              <input type="range" min={1} max={24} step={1} value={dur} onChange={e => setDur(+e.target.value)} style={{ width: "100%" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 7.5, color: "rgba(255,255,255,.18)", marginTop: 4 }}><span>1 mo</span><span>24 mo</span></div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+      <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", justifyContent: "center", padding: isMobile ? "0 6% 24px" : "0 7% 0 5%" }}>
+        <div style={{ position: "absolute", top: 12, right: 12, display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{ fontSize: 7, color: "rgba(255,255,255,.25)", letterSpacing: "0.1em" }}>Next: Why It Works</span>
+          <button data-mag onClick={() => goTo(idx + 1)} style={{ width: 26, height: 26, borderRadius: 3, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,.5)", cursor: "pointer" }}><ChevronRight size={12} /></button>
+        </div>
+        <motion.div key={ret + roiType} initial={{ scale: .94, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: .35 }}
+          style={{ padding: "22px 20px", borderRadius: 4, background: `linear-gradient(135deg,${GOLD}14,${GOLD2}08)`, border: `1px solid ${GOLD}28`, textAlign: "center", marginBottom: 10, marginTop: isMobile ? 32 : 0 }}>
+          <div style={{ fontSize: 7, color: GOLD, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 8 }}>Estimated Total Return for {persona.brand}</div>
+          <div style={{ fontFamily: "var(--display)", fontSize: "clamp(44px,7vw,88px)", color: GOLD, lineHeight: 1, marginBottom: 5 }}>{fmt(ret)}</div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,.32)" }}>{m.roi.toFixed(1)}× on {fmt(inv)} · {dur} months</div>
+        </motion.div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
+          {[{ l: "Est. Reach", v: fmtN(reach) + " people", c: "#5A7ABD" }, { l: "PR Value", v: fmt(pr), c: "#7EC9A0" }, { l: "Impressions", v: fmtN(reach * 3), c: "#9B7FD4" }, { l: "ROI", v: `${m.roi.toFixed(1)}×`, c: GOLD }].map(item => (
+            <motion.div key={item.l} initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: "10px 12px", borderRadius: 4, background: "rgba(255,255,255,.04)", border: `1px solid ${item.c}1e` }}>
+              <div style={{ fontSize: 7, color: item.c, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>{item.l}</div>
+              <div style={{ fontFamily: "var(--mono)", fontSize: "clamp(12px,1.8vw,20px)", fontWeight: 500, color: "#fff" }}>{item.v}</div>
+            </motion.div>
+          ))}
+        </div>
+        <GoldButton large onClick={openContact} style={{ justifyContent: "center" }}>Get {persona.brand}'s Custom Proposal <ArrowRight size={14} /></GoldButton>
+      </div>
+    </div>
+  );
+}
+
+function SlideMomentWhy({ animKey, openContact, persona, isMobile }) {
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100%", background: "#060504", overflow: isMobile ? "auto" : "hidden" }}>
+      <video autoPlay muted loop playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: .12, filter: "grayscale(1)" }}><source src={HERO_VID} type="video/mp4" /></video>
+      <div style={{ position: "absolute", inset: 0, background: "rgba(6,5,4,.88)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 40%,rgba(212,168,67,.07) 0%,transparent 60%)" }} />
+      <div style={{ position: "relative", zIndex: 2, height: isMobile ? "auto" : "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: isMobile ? "48px 6% 24px" : "0 6%" }}>
+        <div style={{ position: "absolute", top: 12, left: 12, display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: `rgba(212,168,67,.1)`, border: `1px solid ${GOLD}40`, borderRadius: 2 }}>
+          <Star size={10} style={{ color: GOLD }} />
+          <span style={{ fontSize: 7, color: GOLD, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>I Need to Be Here · 3/3</span>
+        </div>
+        <motion.div key={animKey} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+            <div style={{ width: 36, height: 2, background: GOLD }} />
+            <span style={{ fontSize: 8, color: GOLD, letterSpacing: "0.25em", textTransform: "uppercase", fontWeight: 700 }}>Why This Creates the Reaction</span>
+          </div>
+          <h2 style={{ fontFamily: "var(--display)", fontSize: "clamp(32px,5.5vw,76px)", color: "#fff", lineHeight: .88, textTransform: "uppercase", marginBottom: 20 }}>
+            The Moment<br />{persona.brand}<br /><span className="shimmer-gold">Says Yes.</span>
+          </h2>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
+            <div style={{ padding: "18px 16px", borderRadius: 4, background: `${GOLD}0e`, border: `1px solid ${GOLD}24` }}>
+              <Star size={14} style={{ color: GOLD, marginBottom: 10 }} />
+              <h3 style={{ fontFamily: "var(--display)", fontSize: 18, color: "#fff", marginBottom: 8, lineHeight: 1, textTransform: "uppercase" }}>Why It Works</h3>
+              <p style={{ fontSize: 11, color: "rgba(255,255,255,.5)", lineHeight: 1.8 }}>
+                You moved the slider to your number. The return updated in real time. In that moment, the question stopped being <em style={{ color: "rgba(255,255,255,.75)" }}>"can we afford this?"</em> and became <em style={{ color: GOLD, fontStyle: "normal", fontWeight: 700 }}>"how soon can we start?"</em>
+                <br /><br />
+                The zone map made it spatial — <em style={{ color: "rgba(255,255,255,.75)" }}>your floor, your activation</em>. The calculator made it financial. MOA isn't an opportunity anymore. It's <span style={{ color: GOLD, fontWeight: 700 }}>{persona.brand}'s stage.</span>
+              </p>
+            </div>
+            {[
+              { i: <BarChart2 size={12} />, t: "Real Numbers", b: `Every figure is indexed to MOA's verified 2024 partner data. When ${persona.brand} sees the return, that's what partners actually achieved.` },
+              { i: <Heart size={12} />, t: "From Interest to Urgency", b: `When return exceeds investment, the conversation changes. Our leasing team is ready — space in the right zones doesn't stay open long.` },
+            ].map((item, i) => (
+              <div key={item.t} style={{ padding: "16px 14px", borderRadius: 4, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.07)", display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ color: GOLD }}>{item.i}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{item.t}</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,.4)", lineHeight: 1.65 }}>{item.b}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: 10 }}>
+            {[
+              { brand: "Nike", quote: "The activation reached 12,000 people in a single weekend. Nothing matched that density.", role: "VP Brand Partnerships" },
+              { brand: "Samsung", quote: "MOA gave us a launch platform that generated more earned media than our entire paid campaign.", role: "Director, Experiential" },
+              { brand: "Grand Hyatt", quote: "The sponsorship drove measurable bookings from out-of-state visitors within 30 days.", role: "Director of Marketing" },
+            ].map(t => (
+              <div key={t.brand} style={{ paddingLeft: 12, borderLeft: `2px solid ${GOLD}40` }}>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,.5)", lineHeight: 1.7, fontStyle: "italic", marginBottom: 4 }}>"{t.quote}"</div>
+                <div style={{ fontSize: 9, color: GOLD, fontWeight: 700 }}>{t.brand}</div>
+                <div style={{ fontSize: 7, color: "rgba(255,255,255,.25)" }}>{t.role}</div>
+              </div>
+            ))}
           </div>
         </motion.div>
       </div>
@@ -1680,140 +1401,190 @@ function SlideContactForm({ openModal }) {
   );
 }
 
-function ModalShell({ show, onClose, title, children }) {
-  if (!show) return null;
+/* ── CONTACT ── */
+function SlideContact({ animKey, openContact, persona, isMobile }) {
+  const [err, setErr] = useState(false);
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden" }}>
+      {!err ? <video autoPlay muted loop playsInline onError={() => setErr(true)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}><source src={HERO_VID} type="video/mp4" /></video>
+        : <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 50%,#1a1005,#050403 70%)" }} />}
+      <div style={{ position: "absolute", inset: 0, background: "rgba(5,4,3,0.76)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 60%,rgba(212,168,67,0.08) 0%,transparent 60%)" }} />
+      <div style={{ position: "absolute", inset: 0, opacity: .025, backgroundImage: `linear-gradient(${GOLD} 1px,transparent 1px),linear-gradient(90deg,${GOLD} 1px,transparent 1px)`, backgroundSize: "90px 90px" }} />
+      <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: isMobile ? "0 8%" : "0 12%" }}>
+        <motion.div key={animKey} initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .9, ease: [.16, 1, .3, 1] }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, justifyContent: "center" }}>
+            <div style={{ width: 28, height: 1.5, background: `linear-gradient(to right,transparent,${GOLD})` }} />
+            <span style={{ fontSize: 8, color: GOLD, letterSpacing: "0.28em", textTransform: "uppercase", fontWeight: 700 }}>The Next Step</span>
+            <div style={{ width: 28, height: 1.5, background: `linear-gradient(to left,transparent,${GOLD})` }} />
+          </div>
+          <h2 style={{ fontFamily: "var(--display)", fontSize: "clamp(44px,10vw,128px)", color: "#fff", lineHeight: .88, textTransform: "uppercase", marginBottom: 24, letterSpacing: "0.01em" }}>
+            <span className="shimmer-gold">{persona.brand}.</span><br />40 Million<br />People.<br />One Call.
+          </h2>
+          <p style={{ fontSize: "clamp(12px,1.5vw,16px)", color: "rgba(255,255,255,.42)", lineHeight: 1.7, marginBottom: 28, maxWidth: 420, margin: "0 auto 28px" }}>
+            Your category. Your zone. Your audience. Let's make it real.
+          </p>
+          <GoldButton large onClick={openContact} style={{ justifyContent: "center", padding: "14px 32px", fontSize: 12 }}>
+            Start the Conversation <ArrowRight size={16} />
+          </GoldButton>
+          <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", animation: "pulse 2s infinite" }} />
+            <span style={{ fontSize: 8, color: "rgba(255,255,255,.22)", letterSpacing: "0.06em" }}>Response within 24 hours · partnerships@mallofamerica.com</span>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+
+function AIPanel({ onClose, persona, isMobile }) {
+  const [msgs, setMsgs] = useState([{ role: "assistant", content: `Hi ${persona.brand} — I'm the MOA Partnership AI. Ask me about pricing, traffic, which zone fits ${persona.category}, what brands like yours have done here, or anything else.` }]);
+  const [inp, setInp] = useState("");
+  const [loading, setLoading] = useState(false);
+  const endRef = useRef(null);
+  const SYSTEM = `You are a sharp, knowledgeable Mall of America brand partnership consultant speaking with a representative from ${persona.brand}, interested in ${persona.category}. Key facts: 40M+ annual visitors, 5.6M sq ft, #1 US destination, Bloomington MN. 500+ partners. Sponsorship tiers: Title $5M+/yr, Premier $1-5M/yr, Associate $250K-1M/yr. Demographics: 70% HHI $85K+, 3.2hr dwell, 55% out-of-state. ROI benchmarks: Sponsorship 3.2x, Retail 4.1x, Events 5.8x. Be specific, confident, under 3 paragraphs, always close with a concrete next step.`;
+
+  const send = async () => {
+    if (!inp.trim() || loading) return;
+    const um = { role: "user", content: inp };
+    setMsgs(p => [...p, um]); setInp(""); setLoading(true);
+    try {
+      const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, system: SYSTEM, messages: [...msgs, um].map(m => ({ role: m.role, content: m.content })) }) });
+      const d = await r.json();
+      setMsgs(p => [...p, { role: "assistant", content: d.content?.[0]?.text || "Try again." }]);
+    } catch { setMsgs(p => [...p, { role: "assistant", content: "Connection issue. Email partnerships@mallofamerica.com" }]); }
+    setLoading(false);
+  };
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, loading]);
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.95)", backdropFilter: "blur(20px)", overflowY: "auto", fontFamily: "'DM Sans',sans-serif" }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ maxWidth: 920, margin: "0 auto", padding: "24px 16px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <MOALogo size={22} />
-            <h2 style={{ fontSize: "clamp(14px,2.2vw,24px)", fontWeight: 800, color: "#fff", margin: 0, textTransform: "uppercase", letterSpacing: "0.04em" }}>{title}</h2>
+      style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(5,4,3,.97)", backdropFilter: "blur(28px)", display: "flex", flexDirection: "column" }}>
+      <div style={{ height: 54, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", borderBottom: "1px solid rgba(255,255,255,.07)", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 32, height: 32, borderRadius: "50%", background: `linear-gradient(135deg,${GOLD},${GOLD2})`, display: "flex", alignItems: "center", justifyContent: "center" }}><Sparkles size={14} style={{ color: "#000" }} /></div>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>MOA Partnership AI</div>
+            <div style={{ fontSize: 7, color: GOLD, letterSpacing: "0.1em" }}>Tailored for {persona.brand} · Powered by Claude</div>
           </div>
-          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 4, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", cursor: "pointer" }}>
-            <X size={14} />
+        </div>
+        <button data-mag onClick={onClose} style={{ width: 30, height: 30, borderRadius: 4, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", color: "rgba(255,255,255,.5)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={12} /></button>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 10, maxWidth: 680, margin: "0 auto", width: "100%" }}>
+        {msgs.map((m, i) => (
+          <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
+            <div style={{ maxWidth: "85%", padding: "10px 14px", borderRadius: m.role === "user" ? "10px 10px 2px 10px" : "10px 10px 10px 2px", background: m.role === "user" ? `linear-gradient(135deg,${GOLD},${GOLD2})` : "rgba(255,255,255,.06)", color: m.role === "user" ? "#000" : "rgba(255,255,255,.8)", fontSize: "clamp(12px,1.5vw,13px)", lineHeight: 1.65, fontWeight: m.role === "user" ? 600 : 400, border: m.role === "assistant" ? "1px solid rgba(255,255,255,.08)" : "none" }}>
+              {m.content}
+            </div>
+          </motion.div>
+        ))}
+        {loading && (<div style={{ display: "flex", gap: 5, padding: "8px 12px" }}>{[0, 1, 2].map(i => <motion.div key={i} animate={{ opacity: [.3, 1, .3] }} transition={{ duration: 1, delay: i * .2, repeat: Infinity }} style={{ width: 6, height: 6, borderRadius: "50%", background: GOLD }} />)}</div>)}
+        <div ref={endRef} />
+      </div>
+      {msgs.length === 1 && (
+        <div style={{ padding: "0 20px 10px", maxWidth: 680, margin: "0 auto", width: "100%" }}>
+          <p style={{ fontSize: 8, color: "rgba(255,255,255,.18)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Try asking</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+            {[`Best zone for ${persona.brand}?`, `ROI on a $1M deal?`, "How does a pop-up work?", `Has a brand like ${persona.brand} done this?`].map(q => (
+              <button key={q} data-mag onClick={() => setInp(q)} style={{ padding: "4px 11px", borderRadius: 20, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", color: "rgba(255,255,255,.45)", fontSize: 10, cursor: "pointer", transition: "all .2s" }}
+                onMouseEnter={e => { e.target.style.borderColor = GOLD; e.target.style.color = GOLD; }}
+                onMouseLeave={e => { e.target.style.borderColor = "rgba(255,255,255,.1)"; e.target.style.color = "rgba(255,255,255,.45)"; }}>
+                {q}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <div style={{ padding: "12px 20px", borderTop: "1px solid rgba(255,255,255,.06)", maxWidth: 680, margin: "0 auto", width: "100%", flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input value={inp} onChange={e => setInp(e.target.value)} onKeyDown={e => e.key === "Enter" && send()}
+            placeholder={`Ask about ${persona.brand}'s MOA opportunity…`}
+            style={{ flex: 1, padding: "11px 14px", borderRadius: 4, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", color: "#fff", fontSize: "clamp(12px,1.5vw,13px)", outline: "none" }} />
+          <button data-mag onClick={send} disabled={loading || !inp.trim()} style={{ width: 44, height: 44, borderRadius: 4, background: `linear-gradient(135deg,${GOLD},${GOLD2})`, border: "none", cursor: loading || !inp.trim() ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: loading || !inp.trim() ? .4 : 1, transition: "opacity .2s" }}>
+            <Send size={14} style={{ color: "#000" }} />
           </button>
         </div>
-        {children}
       </div>
     </motion.div>
   );
 }
 
-function ContactModal({ show, onClose }) {
+function ContactModal({ onClose, persona }) {
+  const [sent, setSent] = useState(false);
+  const categoryMap = { "Retail / Fashion": "Retail Leasing", "Luxury / Premium": "Retail Leasing", "F&B / Dining": "Dining", "Entertainment": "Events", "Sponsorship": "Sponsorship", "Events & Activations": "Events" };
+  const [interest, setInterest] = useState(categoryMap[persona.category] || "Other");
   return (
-    <ModalShell show={show} onClose={onClose} title="Contact Partnerships">
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Get in Touch</div>
-          {[["Retail Leasing", "marcus.williams@moa.com", "#c9a227"], ["Events & Activations", "priya.patel@moa.com", "#e8630a"], ["Sponsorship", "sarah.chen@moa.com", "#a16207"], ["General Inquiries", "partnerships@moa.com", "#c9a227"]].map(([dept, email, color]) => (
-            <div key={dept} style={{ padding: "12px 14px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: `1px solid ${color}22` }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color, marginBottom: 4 }}>{dept}</div>
-              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)" }}>{email}</div>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(5,4,3,.96)", backdropFilter: "blur(24px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, overflowY: "auto" }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <motion.div initial={{ scale: .94, y: 18 }} animate={{ scale: 1, y: 0 }}
+        style={{ width: "100%", maxWidth: 480, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 6, padding: "28px 24px", position: "relative", margin: "auto" }}>
+        <button data-mag onClick={onClose} style={{ position: "absolute", top: 12, right: 12, width: 28, height: 28, borderRadius: 4, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", color: "rgba(255,255,255,.45)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={12} /></button>
+        {sent ? (
+          <div style={{ textAlign: "center", padding: "14px 0" }}>
+            <motion.div initial={{ scale: .7 }} animate={{ scale: 1 }} transition={{ type: "spring", bounce: .5 }}
+              style={{ width: 44, height: 44, borderRadius: "50%", background: `linear-gradient(135deg,${GOLD},${GOLD2})`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+              <Star size={18} style={{ color: "#000" }} />
+            </motion.div>
+            <h3 style={{ fontFamily: "var(--display)", fontSize: 24, color: "#fff", marginBottom: 8 }}>Message Received</h3>
+            <p style={{ fontSize: 12, color: "rgba(255,255,255,.38)", lineHeight: 1.65 }}>We'll have a proposal for <strong style={{ color: "rgba(255,255,255,.65)" }}>{persona.brand}</strong> within 24 hours.</p>
+          </div>
+        ) : (
+          <>
+            <h3 style={{ fontFamily: "var(--display)", fontSize: 20, color: "#fff", marginBottom: 4, lineHeight: 1 }}>Get {persona.brand}'s Proposal</h3>
+            <p style={{ fontSize: 10, color: "rgba(255,255,255,.3)", marginBottom: 12 }}>Your interest in {persona.category} has been pre-selected.</p>
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 8, color: "rgba(255,255,255,.3)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>Partnership Interest</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                {["Retail Leasing", "Sponsorship", "Events", "Pop-Up", "Dining", "Other"].map(o => (
+                  <button key={o} data-mag onClick={() => setInterest(o)} style={{ padding: "4px 10px", borderRadius: 3, fontSize: 9, fontWeight: 700, background: interest === o ? GOLD : "rgba(255,255,255,.05)", color: interest === o ? "#000" : "rgba(255,255,255,.4)", border: `1px solid ${interest === o ? GOLD : "rgba(255,255,255,.1)"}`, cursor: "pointer", transition: "all .2s" }}>{o}</button>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
-        <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: 18, border: "1px solid rgba(255,255,255,0.08)" }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 14 }}>Quick Inquiry</div>
-          {["Name", "Email", "Company", "Phone"].map(ph => (
-            <input key={ph} placeholder={ph} style={{ width: "100%", marginBottom: 8, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 5, padding: "9px 12px", color: "#fff", fontSize: 11, outline: "none", fontFamily: "'DM Sans',sans-serif", boxSizing: "border-box" }} />
-          ))}
-          <textarea placeholder="How can we help?" rows={3} style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 5, padding: "9px 12px", color: "#fff", fontSize: 11, outline: "none", resize: "none", marginBottom: 10, boxSizing: "border-box", fontFamily: "'DM Sans',sans-serif" }} />
-          <button style={{ width: "100%", padding: 10, borderRadius: 5, background: "linear-gradient(135deg,#c9a227,#e8630a)", color: "#fff", fontSize: 11, fontWeight: 700, border: "none", cursor: "pointer", letterSpacing: "0.08em", textTransform: "uppercase" }}>Send Message</button>
-        </div>
-      </div>
-    </ModalShell>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 5, marginBottom: 5 }}>
+              {["Full Name", "Company", "Email", "Phone"].map(ph => (
+                <input key={ph} placeholder={ph} defaultValue={ph === "Company" ? persona.brand : ""}
+                  style={{ padding: "10px 12px", borderRadius: 3, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", color: "#fff", fontSize: 12, outline: "none" }} />
+              ))}
+            </div>
+            <textarea placeholder="Tell us about your goals…" rows={3}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 3, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", color: "#fff", fontSize: 12, outline: "none", resize: "none", marginBottom: 10 }} />
+            <button data-mag onClick={() => setSent(true)} style={{ width: "100%", padding: "11px 0", borderRadius: 3, background: `linear-gradient(135deg,${GOLD},${GOLD2})`, color: "#000", fontSize: 11, fontWeight: 800, border: "none", cursor: "pointer", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+              Send Message →
+            </button>
+            <p style={{ textAlign: "center", fontSize: 8, color: "rgba(255,255,255,.16)", marginTop: 8 }}>Response within 24 hours · Confidential</p>
+          </>
+        )}
+      </motion.div>
+    </motion.div>
   );
 }
 
-function LeasingModal({ show, onClose }) {
-  const tiers = [
-    { cat: "Luxury Flagship", color: "#c9a227", desc: "Premium storefront in our dedicated luxury wing. Direct access to high-net-worth shoppers.", details: ["Avg HHI $150K+", "Private entrance option", "White-glove support", "Co-marketing included"] },
-    { cat: "Standard Retail", color: "#3b82f6", desc: "High-visibility spaces across 5.6M sq ft. Flexible lease terms for brands of every size.", details: ["800–50,000 sq ft", "Flexible lease terms", "Foot traffic guarantees", "Signage support"] },
-    { cat: "F&B Concepts", color: "#e8630a", desc: "Prime dining positions across food courts, inline, and experiential restaurant zones.", details: ["All-day traffic", "Outdoor terrace options", "Ghost kitchen support", "Event tie-ins"] },
-    { cat: "Pop-Up & Activations", color: "#10b981", desc: "Short-term, high-impact spaces for launches, product drops, and seasonal campaigns.", details: ["1 day to 6 months", "Custom buildouts", "Built-in audience", "Social amplification"] },
-  ];
+/* ── Shared ── */
+function GoldButton({ children, onClick, large = false, outline = false, disabled = false, style = {} }) {
   return (
-    <ModalShell show={show} onClose={onClose} title="Leasing Opportunities">
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        {tiers.map((t, i) => (
-          <motion.div key={t.cat} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
-            style={{ padding: 18, borderRadius: 10, background: "rgba(255,255,255,0.04)", border: `1px solid ${t.color}28` }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: t.color, marginBottom: 10 }} />
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 6 }}>{t.cat}</div>
-            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", lineHeight: 1.6, marginBottom: 10 }}>{t.desc}</p>
-            {t.details.map(d => <div key={d} style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", marginBottom: 4, display: "flex", gap: 5 }}><span style={{ color: t.color }}>·</span>{d}</div>)}
-            <button style={{ width: "100%", marginTop: 12, padding: "7px 0", borderRadius: 3, background: t.color, color: "#000", fontSize: 10, fontWeight: 700, border: "none", cursor: "pointer", letterSpacing: "0.07em", textTransform: "uppercase" }}>Inquire Now</button>
-          </motion.div>
-        ))}
-      </div>
-    </ModalShell>
+    <motion.button data-mag onClick={onClick} disabled={disabled}
+      whileHover={!disabled ? { scale: 1.025 } : {}} whileTap={!disabled ? { scale: .975 } : {}}
+      style={{ padding: large ? "11px 20px" : "7px 14px", borderRadius: 3, background: outline ? "transparent" : disabled ? "rgba(212,168,67,.3)" : `linear-gradient(135deg,${GOLD},${GOLD2})`, color: outline ? GOLD : "#000", border: outline ? `1px solid ${GOLD}` : "none", fontSize: large ? 11 : 10, fontWeight: 800, letterSpacing: "0.09em", textTransform: "uppercase", cursor: disabled ? "default" : "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "var(--body)", opacity: disabled ? .5 : 1, ...style }}>
+      {children}
+    </motion.button>
   );
 }
 
-function EventModal({ show, onClose }) {
-  const venues = [
-    { name: "Grand Rotunda", cap: "10,000+", area: "50,000 sq ft", img: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=600&q=70" },
-    { name: "Entertainment Pavilion", cap: "5,000", area: "30,000 sq ft", img: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=600&q=70" },
-    { name: "Brand Activation Zone", cap: "2,000–5,000", area: "10K–25K sq ft", img: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600&q=70" },
-    { name: "Corporate Suite", cap: "500–2,000", area: "5K–15K sq ft", img: "https://images.unsplash.com/photo-1511578314322-379afb476865?w=600&q=70" },
-  ];
+function NavBtn({ children, onClick, disabled }) {
   return (
-    <ModalShell show={show} onClose={onClose} title="Event Spaces">
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12, marginBottom: 16 }}>
-        {venues.map((v, i) => (
-          <motion.div key={v.name} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
-            style={{ borderRadius: 10, overflow: "hidden", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-            <div style={{ height: 120, background: "#222", position: "relative" }}>
-              <img src={v.img} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0, transition: "opacity 0.4s" }} onLoad={e => e.target.style.opacity = 1} />
-            </div>
-            <div style={{ padding: 14 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 6 }}>{v.name}</div>
-              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 10 }}>{v.cap} guests · {v.area}</div>
-              <button style={{ width: "100%", padding: "6px 0", borderRadius: 3, background: "linear-gradient(135deg,#c9a227,#e8630a)", color: "#fff", fontSize: 10, fontWeight: 700, border: "none", cursor: "pointer", letterSpacing: "0.07em", textTransform: "uppercase" }}>Request Info</button>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-      <div style={{ padding: 20, borderRadius: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", marginBottom: 14 }}>Plan Your Event</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
-          {["Full Name", "Email", "Phone", "Company"].map(ph => (
-            <input key={ph} placeholder={ph} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 5, padding: "9px 12px", color: "#fff", fontSize: 11, outline: "none", fontFamily: "'DM Sans',sans-serif" }} />
-          ))}
-        </div>
-        <textarea placeholder="Tell us about your event..." rows={3} style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 5, padding: "9px 12px", color: "#fff", fontSize: 11, outline: "none", resize: "none", marginBottom: 10, boxSizing: "border-box", fontFamily: "'DM Sans',sans-serif" }} />
-        <button style={{ width: "100%", padding: 10, borderRadius: 5, background: "linear-gradient(135deg,#c9a227,#e8630a)", color: "#fff", fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer", letterSpacing: "0.09em", textTransform: "uppercase" }}>Submit Inquiry</button>
-      </div>
-    </ModalShell>
+    <button data-mag onClick={onClick} disabled={disabled} style={{ width: 28, height: 28, borderRadius: 3, border: "1px solid rgba(255,255,255,.1)", background: "rgba(255,255,255,.04)", display: "flex", alignItems: "center", justifyContent: "center", color: disabled ? "rgba(255,255,255,.18)" : "#fff", cursor: disabled ? "default" : "pointer" }}>
+      {children}
+    </button>
   );
 }
 
-function SponsorModal({ show, onClose }) {
-  const tiers = [
-    { tier: "Title Partner", price: "$5M+/yr", color: "#c9a227", perks: ["Naming rights on venue", "All activation zones", "Brand ambassador", "Exclusive category", "Media value $15M+"] },
-    { tier: "Premier Partner", price: "$1M–$5M/yr", color: "#9ca3af", perks: ["Category exclusivity", "Digital + physical", "10+ activation days", "Co-branded campaigns", "Event headlines"] },
-    { tier: "Associate Partner", price: "$250K–$1M/yr", color: "#e8630a", perks: ["Branded zones", "5 activation days", "Social features", "Email access", "Seasonal slots"] },
-  ];
+function MOAStar({ size = 28, style: extraStyle = {} }) {
   return (
-    <ModalShell show={show} onClose={onClose} title="Sponsorship Tiers">
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 18 }}>
-        {tiers.map((t, i) => (
-          <motion.div key={t.tier} initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
-            style={{ padding: 18, borderRadius: 10, background: "rgba(255,255,255,0.04)", border: `1px solid ${t.color}30` }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: t.color, marginBottom: 3 }}>{t.tier}</div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 12 }}>{t.price}</div>
-            {t.perks.map(p => <div key={p} style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", marginBottom: 5, display: "flex", gap: 5 }}><span style={{ color: t.color }}>·</span>{p}</div>)}
-            <button style={{ width: "100%", marginTop: 12, padding: "6px 0", borderRadius: 3, background: t.color, color: "#000", fontSize: 10, fontWeight: 700, border: "none", cursor: "pointer", letterSpacing: "0.07em", textTransform: "uppercase" }}>Get Proposal</button>
-          </motion.div>
-        ))}
-      </div>
-      <div style={{ textAlign: "center" }}>
-        <p style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginBottom: 12 }}>Custom packages available for all budgets</p>
-        <GoldBtn onClick={onClose}>Contact Partnerships Team</GoldBtn>
-      </div>
-    </ModalShell>
+    <svg viewBox="0 0 100 100" style={{ width: size, height: size, flexShrink: 0, ...extraStyle }}>
+      <defs><linearGradient id="sg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#D4A843" /><stop offset="100%" stopColor="#C47B1A" /></linearGradient></defs>
+      <polygon points="50,8 62,36 92,36 69,54 78,82 50,64 22,82 31,54 8,36 38,36" fill="url(#sg2)" />
+    </svg>
   );
 }
