@@ -398,9 +398,7 @@ export default function App() {
               );
             })}
             <div style={{ padding: "16px 20px", borderTop: "1px solid rgba(255,255,255,.06)", display: "flex", flexDirection: "column", gap: 8 }}>
-              <button onClick={() => { setAiOpen(true); setNavOpen(false); }} style={{ padding: "10px 14px", borderRadius: 3, background: "rgba(212,168,67,.1)", border: `1px solid ${GOLD}40`, color: GOLD, fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontFamily: "var(--body)" }}>
-                <Sparkles size={11} /> Ask AI
-              </button>
+
               <button onClick={() => { setContactOpen(true); setNavOpen(false); }} style={{ padding: "10px 14px", borderRadius: 3, background: `linear-gradient(135deg,${GOLD},${GOLD2})`, border: "none", color: "#000", fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer", fontFamily: "var(--body)" }}>
                 Get In Touch
               </button>
@@ -461,9 +459,7 @@ export default function App() {
             </span>
           )}
           <div style={{ display: "flex", gap: 6 }}>
-            <button data-mag onClick={() => setAiOpen(true)} style={{ padding: "5px 10px", borderRadius: 3, background: "rgba(212,168,67,.1)", border: `1px solid ${GOLD}40`, color: GOLD, fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-              <Sparkles size={10} /> {!isMobile && "Ask "}AI
-            </button>
+
             <button data-mag onClick={() => setContactOpen(true)} style={{ padding: "5px 12px", borderRadius: 3, background: `linear-gradient(135deg,${GOLD},${GOLD2})`, border: "none", color: "#000", fontSize: 9, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer" }}>
               {isMobile ? "Contact" : "Get In Touch"}
             </button>
@@ -511,9 +507,7 @@ function HubView({ persona, onSelect, openAI, openContact, isMobile, isTablet })
         </motion.div>
         {!isMobile && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .4 }} style={{ display: "flex", gap: 8 }}>
-            <button data-mag onClick={openAI} style={{ padding: "7px 14px", borderRadius: 3, background: "rgba(212,168,67,.1)", border: `1px solid ${GOLD}40`, color: GOLD, fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-              <Sparkles size={11} /> Ask AI
-            </button>
+
             <button data-mag onClick={openContact} style={{ padding: "7px 16px", borderRadius: 3, background: `linear-gradient(135deg,${GOLD},${GOLD2})`, border: "none", color: "#000", fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}>
               Get In Touch
             </button>
@@ -719,9 +713,7 @@ function SlideHero({ goTo, openAI, animKey, persona, isMobile }) {
           <GoldButton large onClick={() => goTo(SLIDES.findIndex(s => s.section === "why"))}>
             See Opportunity <ArrowRight size={14} />
           </GoldButton>
-          <button data-mag onClick={openAI} style={{ padding: "11px 16px", borderRadius: 3, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.14)", color: "#fff", fontSize: 10, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", cursor: "pointer", display: "flex", alignItems: "center", gap: 7, backdropFilter: "blur(10px)" }}>
-            <Sparkles size={12} style={{ color: GOLD }} /> Ask AI
-          </button>
+
         </motion.div>
       </div>
 
